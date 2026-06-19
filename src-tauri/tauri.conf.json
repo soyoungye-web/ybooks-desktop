@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "identifier": "com.ybooks.desktop",
   "build": {
-    "frontendDist": "../frontend"
+    "frontendDist": "../frontend",
+    "beforeBuildCommand": ""
   },
   "app": {
     "withGlobalTauri": true,
