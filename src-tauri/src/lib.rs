@@ -3,7 +3,7 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
-use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState, GlobalShortcutExt};
 
 // ═══════════════════════════════════════════════════════════
 //  系统托盘 + 右键菜单
@@ -158,7 +158,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--autostart".to_string()]),
+            Some(vec!["--autostart"]),
         ))
         // ── 全局快捷键 ──
         .plugin(
