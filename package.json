@@ -1,0 +1,11 @@
+{
+  "name": "ybooks-desktop",
+  "version": "1.0.0",
+  "description": "Ybooks 工作看板桌面版",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
