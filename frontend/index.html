@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ybooks</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;color:#37352F}
+.fade-in{animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce-dot{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.dot-bounce span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#9B9A97;margin:0 2px;animation:bounce-dot 1.2s infinite}
+.dot-bounce span:nth-child(2){animation-delay:.2s}
+.dot-bounce span:nth-child(3){animation-delay:.4s}
+.kanban-card.dragging{opacity:0.5;transform:rotate(2deg)}
+.kanban-column.drag-over .column-body{background:rgba(55,53,47,0.03)}
+.line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.line-clamp-3{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239B9A97' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.notion-input{width:100%;padding:8px 12px;border:1px solid #E5E5E5;border-radius:6px;font-size:13px;color:#37352F;outline:none;transition:border-color .15s}
+.notion-input:focus{border-color:#37352F}
+.notion-input::placeholder{color:#9B9A97}
+.today-scroll{scrollbar-width:none;-ms-overflow-style:none}
+.today-scroll::-webkit-scrollbar{display:none}
+.today-scroll:hover{scrollbar-width:thin;scrollbar-color:#d1d1d1 transparent}
+.today-scroll:hover::-webkit-scrollbar{display:block;height:6px}
+.today-scroll:hover::-webkit-scrollbar-thumb{background:#d1d1d1;border-radius:3px}
+.category-scroll{scrollbar-width:none;-ms-overflow-style:none}
+.category-scroll::-webkit-scrollbar{display:none}
+.category-scroll:hover{scrollbar-width:thin;scrollbar-color:#d1d1d1 transparent}
+.category-scroll:hover::-webkit-scrollbar{display:block;width:6px}
+.category-scroll:hover::-webkit-scrollbar-thumb{background:#d1d1d1;border-radius:3px}
+/* 移动端底部安全区域 */
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+  body{padding-bottom:env(safe-area-inset-bottom)}
+}
+/* 知识库文档渲染 */
+.knowledge-doc h1{font-size:1.5rem;font-weight:700;margin:1.5rem 0 0.75rem;color:#37352F}
+.knowledge-doc h2{font-size:1.25rem;font-weight:600;margin:1.25rem 0 0.5rem;color:#37352F}
+.knowledge-doc h3{font-size:1.1rem;font-weight:600;margin:1rem 0 0.5rem;color:#37352F}
+.knowledge-doc p{margin:0.5rem 0;line-height:1.75;color:#37352F}
+.knowledge-doc ul,.knowledge-doc ol{margin:0.5rem 0;padding-left:1.5rem;color:#37352F}
+.knowledge-doc li{margin:0.25rem 0;line-height:1.65}
+.knowledge-doc code{background:#f5f5f5;padding:0.15rem 0.4rem;border-radius:4px;font-size:0.85em;color:#eb5757}
+.knowledge-doc pre{background:#f5f5f5;padding:1rem;border-radius:8px;overflow-x:auto;margin:0.75rem 0}
+.knowledge-doc pre code{background:none;padding:0;color:#37352F}
+.knowledge-doc blockquote{border-left:3px solid #e0e0e0;padding-left:1rem;margin:0.75rem 0;color:#6b7280;font-style:italic}
+.knowledge-doc a{color:#37352F;text-decoration:underline;text-underline-offset:2px}
+.knowledge-doc hr{border:none;border-top:1px solid #e5e5e5;margin:1.5rem 0}
+.knowledge-doc table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.875rem}
+.knowledge-doc th,.knowledge-doc td{border:1px solid #e5e5e5;padding:0.5rem 0.75rem;text-align:left}
+.knowledge-doc th{background:#fafafa;font-weight:600}
+.knowledge-doc img{max-width:100%;border-radius:6px;margin:0.5rem 0}
+/* ═══ 笔记本 ═══ */
+/* Quill 自定义 */
+#note-editor{font-size:13px;color:#37352F}
+#note-editor .ql-editor{min-height:300px;padding:16px 20px;line-height:1.75}
+#note-editor .ql-editor.ql-blank::before{color:#9B9A97;font-style:normal}
+#note-toolbar{padding:8px 8px;border-bottom:1px solid #E5E5E5}
+#note-toolbar .ql-formats{margin-right:8px}
+#note-toolbar .ql-picker{height:28px}
+#note-toolbar .ql-picker-label{font-size:12px;padding:2px 6px}
+#note-toolbar button{width:28px;height:28px}
+#note-toolbar .ql-stroke{stroke:#37352F}
+#note-toolbar .ql-fill{fill:#37352F}
+/* 展示模式 */
+.note-display-content{font-size:13px;line-height:1.8;color:#37352F}
+.note-display-content.auto-number{counter-reset:paragraph}
+.note-display-content.auto-number p:not(.ql-direction-rtl)::before{counter-increment:paragraph;content:counter(paragraph) ". ";color:#9B9A97;font-weight:600;margin-right:4px}
+.note-display-content h1{font-size:1.5rem;font-weight:700;margin:1.5rem 0 0.75rem}
+.note-display-content h2{font-size:1.25rem;font-weight:600;margin:1.25rem 0 0.5rem}
+.note-display-content p{margin:0.5rem 0}
+.note-display-content img{max-width:100%;border-radius:6px;margin:0.5rem 0}
+.note-display-content ul,.note-display-content ol{margin:0.5rem 0;padding-left:1.5rem}
+.note-display-content blockquote{border-left:3px solid #e0e0e0;padding-left:1rem;margin:0.75rem 0;color:#6b7280}
+.note-display-content pre{background:#f5f5f5;padding:1rem;border-radius:8px;overflow-x:auto}
+/* 高亮标注 */
+mark.note-highlight{background:#fff59d;border-radius:2px;padding:0 1px}
+mark.note-highlight-blue{background:#bbdefb;border-radius:2px;padding:0 1px}
+mark.note-highlight-green{background:#c8e6c9;border-radius:2px;padding:0 1px}
+mark.note-highlight-pink{background:#f8bbd0;border-radius:2px;padding:0 1px}
+/* 画线 SVG */
+#note-draw-svg{z-index:10}
+#note-draw-svg .draw-line{stroke:#ef4444;stroke-width:2;cursor:pointer}
+.note-draw-active{cursor:crosshair}
+</style>
+</head>
+<body class="bg-white min-h-screen" x-data="app()" x-init="init()">
+
+<!-- 登录页 -->
+<template x-if="!authed">
+  <div class="min-h-screen flex items-center justify-center p-4 bg-white">
+    <div class="w-full max-w-sm">
+      <div class="text-center mb-8">
+        <div class="mb-4">
+          <img src="/static/logo.png" alt="Logo" class="h-[84px] w-auto mx-auto">
+        </div>
+        <div class="text-sm text-gray-400">输入密码以继续</div>
+      </div>
+      <form @submit.prevent="login()" class="space-y-3">
+        <input x-model="token" type="password" placeholder="密码" class="notion-input" autofocus>
+        <div x-show="err" x-text="err" class="text-red-500 text-sm text-center"></div>
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-[#37352F] text-white text-sm font-medium hover:bg-black transition-colors duration-150" x-text="loading?'登录中...':'登录'"></button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<!-- 主界面 -->
+<template x-if="authed">
+  <div class="flex flex-col min-h-screen">
+
+    <!-- 顶栏 -->
+    <header class="sticky top-0 z-30 bg-white border-b border-gray-200">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <h1 class="flex items-center">
+          <img src="/static/logo.png" alt="Logo" class="h-12 w-auto">
+        </h1>
+        <div class="flex items-center gap-4">
+          <button @click="showHelp=true" class="text-sm text-gray-400 hover:text-gray-700 transition-colors duration-150"><i class="ti ti-help-circle mr-0.5 text-xs"></i>帮助</button>
+          <button @click="logout()" class="text-sm text-gray-400 hover:text-gray-700 transition-colors duration-150">退出</button>
+        </div>
+      </div>
+      <!-- Tab 下划线式 -->
+      <div x-show="!showHelp" class="max-w-3xl mx-auto px-4 sm:px-6 flex gap-0">
+        <button @click="switchTab('tasks')" class="px-4 py-2.5 text-sm transition-colors duration-150 border-b-2 -mb-px"
+          :class="tab==='tasks'?'border-[#37352F] text-[#37352F] font-semibold':'border-transparent text-gray-400 hover:text-gray-600'">
+          <i class="ti ti-list-check mr-1.5 text-xs"></i>任务列表
+        </button>
+        <button @click="switchTab('today')" class="px-4 py-2.5 text-sm transition-colors duration-150 border-b-2 -mb-px"
+          :class="tab==='today'?'border-[#37352F] text-[#37352F] font-semibold':'border-transparent text-gray-400 hover:text-gray-600'">
+          <i class="ti ti-calendar-event mr-1.5 text-xs"></i>今日工作
+        </button>
+        <button @click="switchTab('issues')" class="px-4 py-2.5 text-sm transition-colors duration-150 border-b-2 -mb-px"
+          :class="tab==='issues'?'border-[#37352F] text-[#37352F] font-semibold':'border-transparent text-gray-400 hover:text-gray-600'">
+          <i class="ti ti-bulb mr-1.5 text-xs"></i>问题列表
+        </button>
+        <button @click="switchTab('ideas')" class="px-4 py-2.5 text-sm transition-colors duration-150 border-b-2 -mb-px"
+          :class="tab==='ideas'?'border-[#37352F] text-[#37352F] font-semibold':'border-transparent text-gray-400 hover:text-gray-600'">
+          <i class="ti ti-bulb mr-1.5 text-xs"></i>想法库
+        </button>
+        <button @click="switchTab('reminders')" class="px-4 py-2.5 text-sm transition-colors duration-150 border-b-2 -mb-px"
+          :class="tab==='reminders'?'border-[#37352F] text-[#37352F] font-semibold':'border-transparent text-gray-400 hover:text-gray-600'">
+          <i class="ti ti-alarm mr-1.5 text-xs"></i>固定提醒
+        </button>
+        <button @click="switchTab('notebooks')" class="px-4 py-2.5 text-sm transition-colors duration-150 border-b-2 -mb-px"
+          :class="tab==='notebooks'?'border-[#37352F] text-[#37352F] font-semibold':'border-transparent text-gray-400 hover:text-gray-600'">
+          <i class="ti ti-notebook mr-1.5 text-xs"></i>笔记本
+        </button>
+      </div>
+    </header>
+
+    <main x-show="!showHelp && tab!=='notebooks'" class="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-5 space-y-4">
+
+      <!-- ═══ 任务列表 Tab ═══ -->
+      <div x-show="tab==='tasks'">
+        <!-- 筛选行 -->
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 mb-4">
+          <select x-model="taskFilter.status" @change="loadTasks()" class="w-full sm:flex-1 sm:min-w-[110px] notion-input text-sm !py-2">
+            <option value="">全部状态</option>
+            <option value="进行中">进行中</option>
+            <option value="已完成">已完成</option>
+            <option value="已取消">已取消</option>
+            <option value="已过期">已过期</option>
+          </select>
+          <select x-model="taskFilter.category" @change="loadTasks()" class="w-full sm:flex-1 sm:min-w-[110px] notion-input text-sm !py-2">
+            <option value="">全部分类</option>
+            <option value="🔵 A+工作">A+工作</option>
+            <option value="🟠 地铁工作">地铁工作</option>
+            <option value="🟢 个人提升">个人提升</option>
+            <option value="🟣 生活日常">生活日常</option>
+          </select>
+          <select x-model="taskSortBy" class="w-full sm:flex-1 sm:min-w-[110px] notion-input text-sm !py-2">
+            <option value="deadline_asc">截止时间 ↑</option>
+            <option value="deadline_desc">截止时间 ↓</option>
+            <option value="created_desc">创建时间 ↓</option>
+            <option value="created_asc">创建时间 ↑</option>
+            <option value="title_asc">标题 A→Z</option>
+            <option value="title_desc">标题 Z→A</option>
+            <option value="status_asc">状态排序</option>
+          </select>
+          <div class="col-span-2 sm:flex-1 sm:min-w-[220px] flex items-center gap-1">
+            <input type="date" x-model="taskFilter.date_from" class="notion-input text-sm !py-2 text-center flex-1" style="min-width:0">
+            <span class="text-xs text-gray-400 shrink-0">至</span>
+            <input type="date" x-model="taskFilter.date_to" class="notion-input text-sm !py-2 text-center flex-1" style="min-width:0">
+          </div>
+        </div>
+        <!-- 搜索 + 新建 -->
+        <div class="flex items-center gap-2 mb-5">
+          <div class="flex-1 flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden">
+            <input x-model="taskFilter.keyword" @keyup.enter="loadTasks()" placeholder="搜索任务..." class="flex-1 px-3 py-2 text-sm text-[#37352F] outline-none placeholder-gray-400">
+            <button @click="loadTasks()" class="px-3 py-2 text-gray-400 hover:text-[#37352F] transition-colors duration-150"><i class="ti ti-search text-sm"></i></button>
+          </div>
+          <button @click="openTaskCreate()" class="flex items-center gap-1 px-3 py-2 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition-colors duration-150">
+            <i class="ti ti-plus text-sm"></i><span class="hidden sm:inline">新建</span>
+          </button>
+          <button @click="downloadTasks()" class="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-[#37352F] text-sm hover:bg-gray-50 transition-colors duration-150">
+            <i class="ti ti-download text-sm"></i><span class="hidden sm:inline">任务下载</span>
+          </button>
+        </div>
+
+        <div x-show="taskLoading" class="text-center py-10 text-gray-400">
+          <div class="dot-bounce"><span></span><span></span><span></span></div>
+          <div class="mt-2 text-sm">加载中</div>
+        </div>
+
+        <div x-show="!taskLoading && tasks.length===0" class="text-center py-14">
+          <div class="text-gray-400 text-sm">没有找到任务</div>
+        </div>
+
+        <div class="space-y-2" x-show="!taskLoading">
+          <template x-for="t in sortedTasks()" :key="t.record_id">
+            <div @click="openTaskEdit(t)" class="bg-white border border-gray-100 rounded-lg px-4 py-3 sm:px-5 sm:py-4 shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer fade-in"
+              :class="t.status==='已完成'?'opacity-60':''">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 shrink-0 font-medium" x-text="t.number"></span>
+                    <span class="font-medium text-[#37352F] truncate text-sm inline-flex items-center gap-1" x-text="t.title||'(无标题)'"></span>
+                    <i x-show="t.remind_me" class="ti ti-bell-ringing text-amber-500 text-sm shrink-0" title="精准提醒已开启"></i>
+                    <i x-show="t.status==='已完成'" class="ti ti-circle-check text-emerald-500 text-sm shrink-0"></i>
+                  </div>
+                  <div x-show="t.category||t.project" class="text-xs text-gray-400 mb-1 flex flex-wrap gap-1.5">
+                    <span x-show="t.category" class="px-1.5 py-0.5 rounded inline-flex items-center gap-1" :style="'background:' + categoryColor(t.category) + '14; color:' + categoryColor(t.category)"><i class="ti text-xs" :class="categoryIcon(t.category)"></i><span x-text="categoryLabel(t.category)"></span></span>
+                    <span x-show="t.project" class="px-1.5 py-0.5 rounded bg-gray-50 text-gray-500" x-text="t.project"></span>
+                  </div>
+                  <div class="flex items-center gap-3 mt-1">
+                    <div x-show="t.deadline" class="text-xs" :class="isOverdue(t.deadline)?'text-red-400':'text-gray-400'">
+                      <span x-text="fmtDate(t.deadline)+' 截止'"></span>
+                    </div>
+                    <div x-show="t.assignee" class="text-xs text-gray-400 flex items-center gap-0.5">
+                      <i class="ti ti-user text-[10px]"></i><span x-text="t.assignee"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="shrink-0 relative" @click.stop>
+                  <span @click="toggleStatusMenu('task',t.record_id)" class="text-xs px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1 cursor-pointer" :class="taskStatusClass(t.status)">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="taskStatusDot(t.status)"></span>
+                    <span x-text="t.status||'进行中'"></span>
+                  </span>
+                  <div x-show="statusMenu.type==='task'&&statusMenu.id===t.record_id" @click.away="closeStatusMenu()" class="absolute right-0 sm:right-0 left-0 sm:left-auto top-7 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20 min-w-[100px]">
+                    <template x-for="s in ['进行中','已完成','已取消','已过期']" :key="s">
+                      <button @click="changeTaskStatus(t,s)" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-1.5" :class="s===t.status?'text-[#37352F] font-medium':'text-gray-500'">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="taskStatusDot(s)"></span>
+                        <span x-text="s"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+              <div x-show="t.description" class="mt-2 text-xs text-gray-400 line-clamp-2" x-text="t.description"></div>
+              <div x-show="t.progress" class="mt-1.5 text-xs text-gray-500 bg-gray-50 rounded px-2.5 py-1.5 line-clamp-2"><i class="ti ti-file-text mr-1"></i><span x-text="t.progress"></span></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ═══ 今日工作安排 Tab ═══ -->
+      <div x-show="tab==='today'">
+        <div x-show="todayLoading" class="text-center py-10 text-gray-400">
+          <div class="dot-bounce"><span></span><span></span><span></span></div>
+          <div class="mt-2 text-sm">加载今日任务</div>
+        </div>
+
+        <div x-show="!todayLoading && todayTotal===0" class="text-center py-14">
+          <div class="text-gray-400 text-sm mb-4">今日没有安排任务</div>
+          <button class="py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-150 inline-flex items-center gap-1.5 bg-[#37352F]/5 text-[#37352F] hover:bg-[#37352F]/10"
+                  @click="openNewCard('🔵 A+工作')">
+            <i class="ti ti-plus text-sm"></i>新建任务
+          </button>
+        </div>
+
+        <!-- 顶部操作栏 -->
+        <div x-show="!todayLoading && todayTotal>0" class="flex items-center justify-between mb-4">
+          <div class="text-xs text-gray-400">共 <span class="font-medium text-[#37352F]" x-text="todayTotal"></span> 项任务</div>
+          <button @click="openNewCard('🔵 A+工作')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition-colors duration-150">
+            <i class="ti ti-plus text-xs"></i>新建
+          </button>
+        </div>
+        <!-- 网格卡片区域 -->
+        <div x-show="!todayLoading && todayTotal>0" class="columns-1 sm:columns-2 lg:columns-3 gap-1.5">
+          <template x-for="task in todayTasks" :key="task.record_id">
+            <div class="group relative rounded-xl px-4 py-3.5 cursor-pointer transition-all duration-200 border break-inside-avoid mb-1.5"
+                 @click="openTaskEdit(task)"
+                 :class="task.status==='已完成'?'bg-gray-50/50 border-gray-200/40 shadow-none hover:shadow-sm':'bg-white border-gray-200/70 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]'">
+              <!-- 删除按钮 -->
+              <div class="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                <button @click.stop="deleteTaskConfirm(task)" class="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors duration-150">
+                  <i class="ti ti-trash text-xs"></i>
+                </button>
+              </div>
+              <!-- 分类标签 -->
+              <div class="mb-2.5">
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full"
+                      :style="'background:' + categoryColor(task.category) + '14; color:' + categoryColor(task.category)">
+                  <span class="w-1.5 h-1.5 rounded-full" :style="'background:' + categoryColor(task.category)"></span>
+                  <span x-text="categoryLabel(task.category)"></span>
+                </span>
+              </div>
+              <!-- 编号+状态 -->
+              <div class="flex items-center gap-2 mb-1.5">
+                <span x-show="task.number" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-gray-400 font-medium" x-text="task.number"></span>
+                <span class="relative" @click.stop>
+                  <span @click="toggleStatusMenu('today',task.record_id)" class="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1 cursor-pointer" :class="taskStatusClass(task.status)">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="taskStatusDot(task.status)"></span>
+                    <span x-text="task.status||'进行中'"></span>
+                  </span>
+                  <div x-show="statusMenu.type==='today'&&statusMenu.id===task.record_id" @click.away="closeStatusMenu()" class="absolute left-0 top-7 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20 min-w-[100px]">
+                    <template x-for="s in ['进行中','已完成','已取消','已过期']" :key="s">
+                      <button @click="changeTaskStatus(task,s)" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-1.5" :class="s===task.status?'text-[#37352F] font-medium':'text-gray-500'">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="taskStatusDot(s)"></span>
+                        <span x-text="s"></span>
+                      </button>
+                    </template>
+                  </div>
+                </span>
+              </div>
+              <!-- 标题 -->
+              <div class="flex items-start gap-1 mb-1">
+                <span class="text-sm font-medium leading-snug"
+                      :class="task.status==='已完成'?'text-gray-400 line-through':'text-[#37352F]'"
+                      x-text="task.title||'(无标题)'"></span>
+                <i x-show="task.remind_me" class="ti ti-bell-ringing text-amber-500 text-sm shrink-0 mt-0.5" title="精准提醒已开启"></i>
+                <i x-show="task.status==='已完成'" class="ti ti-circle-check text-emerald-500 text-sm shrink-0 mt-0.5"></i>
+              </div>
+              <!-- 描述 -->
+              <div x-show="task.description" class="text-gray-400 text-xs mb-2 leading-relaxed" x-text="task.description"></div>
+              <!-- 项目 -->
+              <div x-show="task.project" class="mb-2">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-gray-500"><i class="ti ti-folder mr-0.5 text-[10px]"></i><span x-text="task.project"></span></span>
+              </div>
+              <!-- 进度 -->
+              <div x-show="task.progress" class="mb-2 text-xs text-gray-500 bg-gray-50/80 rounded-md px-2.5 py-1.5 leading-relaxed"><i class="ti ti-file-text mr-1 text-[10px]"></i><span x-text="task.progress"></span></div>
+              <!-- 底部 -->
+              <div class="flex items-center justify-between pt-2 mt-1 border-t border-gray-100/80">
+                <div x-show="task.time_slot" class="flex items-center gap-1 text-xs text-blue-500 font-medium">
+                  <i class="ti ti-clock text-[10px]"></i>
+                  <span x-text="task.time_slot"></span>
+                </div>
+                <div x-show="!task.time_slot && task.deadline" class="flex items-center gap-1 text-xs text-gray-400">
+                  <i class="ti ti-clock text-[10px]"></i>
+                  <span x-text="fmtTime(task.deadline)"></span>
+                </div>
+                <div x-show="task.assignee" class="flex items-center gap-1 text-xs text-gray-400 ml-auto">
+                  <i class="ti ti-user text-[10px]"></i>
+                  <span x-text="task.assignee"></span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- 新建卡片模态 -->
+        <div x-show="newCard.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keyup.escape.window="newCard.show=false">
+          <div class="absolute inset-0 bg-black/20" @click="newCard.show=false"></div>
+          <div class="relative bg-white rounded-xl shadow-xl w-full sm:max-w-md rounded-t-xl sm:rounded-b-xl max-h-[85vh] flex flex-col z-10">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+              <h3 class="text-base font-semibold text-[#37352F] mb-4">新建任务</h3>
+              <div class="space-y-3">
+                <input x-model="newCard.title" placeholder="任务标题" class="notion-input">
+                <textarea x-model="newCard.description" placeholder="描述（可选）" rows="2" class="notion-input resize-none"></textarea>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <select x-model="newCard.category" class="notion-input text-sm !py-2">
+                    <option value="">选择分类</option>
+                    <option value="🔵 A+工作">A+工作</option>
+                    <option value="🟠 地铁工作">地铁工作</option>
+                    <option value="🟢 个人提升">个人提升</option>
+                    <option value="🟣 生活日常">生活日常</option>
+                  </select>
+                  <select x-model="newCard.status" class="notion-input text-sm !py-2">
+                    <option value="进行中">进行中</option>
+                    <option value="已完成">已完成</option>
+                  </select>
+                </div>
+                <input x-model="newCard.assignee" placeholder="负责人（默认：洋哥）" class="notion-input">
+                <div>
+                  <div class="text-xs text-gray-400 mb-1.5">执行时间段</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <select x-model="newCard.time_start" class="notion-input text-sm !py-2">
+                      <option value="">开始时间</option>
+                      <template x-for="t in timeOptions" :key="t">
+                        <option :value="t" x-text="t"></option>
+                      </template>
+                    </select>
+                    <select x-model="newCard.time_end" class="notion-input text-sm !py-2">
+                      <option value="">结束时间</option>
+                      <template x-for="t in timeOptions" :key="t">
+                        <option :value="t" x-text="t"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+                <label class="flex items-center gap-2 select-none text-sm text-gray-600 cursor-pointer">
+                  <input type="checkbox" x-model="newCard.remind_me" class="w-4 h-4 rounded border-gray-300 text-[#37352F] focus:ring-[#37352F]">
+                  <span>到时提醒我</span>
+                </label>
+              </div>
+            </div>
+            <div class="flex gap-3 p-4 sm:p-6 pt-2 border-t border-gray-100">
+              <button @click="newCard.show=false" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors duration-150">取消</button>
+              <button @click="submitNewCard()" :disabled="newCard.loading" class="flex-1 py-2.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" x-text="newCard.loading?'添加中...':'添加'"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 问题列表 Tab ═══ -->
+      <div x-show="tab==='issues'">
+        <!-- 筛选行 -->
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 mb-4">
+          <select x-model="issueFilter.status" @change="loadIssues()" class="w-full sm:flex-1 sm:min-w-[100px] notion-input text-sm !py-2">
+            <option value="">全部状态</option>
+            <option value="待处理">待处理</option>
+            <option value="处理中">处理中</option>
+            <option value="已解决">已解决</option>
+            <option value="已搁置">已搁置</option>
+            <option value="已关闭">已关闭</option>
+          </select>
+          <select x-model="issueFilter.source" @change="loadIssues()" class="w-full sm:flex-1 sm:min-w-[100px] notion-input text-sm !py-2">
+            <option value="">全部来源</option>
+            <option value="📋 例会">例会</option>
+            <option value="🔍 检查">检查</option>
+            <option value="💼 经营">经营</option>
+            <option value="👥 客户">客户</option>
+            <option value="🔧 运维">运维</option>
+            <option value="📊 数据">数据</option>
+            <option value="🤔 其他">其他</option>
+          </select>
+          <select x-model="issueFilter.assignee" @change="loadIssues()" class="col-span-2 sm:flex-1 sm:min-w-[100px] sm:col-span-1 notion-input text-sm !py-2">
+            <option value="">全部负责人</option>
+            <template x-for="a in issueAssignees" :key="a">
+              <option :value="a" x-text="a"></option>
+            </template>
+          </select>
+        </div>
+        <!-- 搜索 + 新建 -->
+        <div class="flex items-center gap-2 mb-5">
+          <div class="flex-1 flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden">
+            <input x-model="issueFilter.keyword" @keyup.enter="loadIssues()" placeholder="搜索问题..." class="flex-1 px-3 py-2 text-sm text-[#37352F] outline-none placeholder-gray-400">
+            <button @click="loadIssues()" class="px-3 py-2 text-gray-400 hover:text-[#37352F] transition-colors duration-150"><i class="ti ti-search text-sm"></i></button>
+          </div>
+          <button @click="openIssueCreate()" class="flex items-center gap-1 px-3 py-2 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition-colors duration-150">
+            <i class="ti ti-plus text-sm"></i><span class="hidden sm:inline">新建</span>
+          </button>
+        </div>
+
+        <div x-show="issueLoading" class="text-center py-10 text-gray-400">
+          <div class="dot-bounce"><span></span><span></span><span></span></div>
+          <div class="mt-2 text-sm">加载中</div>
+        </div>
+
+        <div x-show="!issueLoading && issues.length===0" class="text-center py-14">
+          <div class="text-gray-400 text-sm">没有找到问题</div>
+        </div>
+
+        <div class="space-y-2" x-show="!issueLoading">
+          <template x-for="iss in issues" :key="iss.record_id">
+            <div @click="openIssueEdit(iss)" class="bg-white border border-gray-100 rounded-lg px-4 py-3 sm:px-5 sm:py-4 shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer fade-in">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs text-gray-400 shrink-0" x-text="iss.number"></span>
+                    <span class="font-medium text-[#37352F] truncate text-sm" x-text="iss.description?.substring(0,60)||'(无描述)'"></span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5 mt-1.5">
+                    <span x-show="iss.source" class="text-xs px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 inline-flex items-center gap-1"><i class="ti text-xs" :class="sourceIcon(iss.source)"></i><span x-text="sourceLabel(iss.source)"></span></span>
+                    <span x-show="iss.assignee" class="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 inline-flex items-center gap-1"><i class="ti ti-user text-xs"></i><span x-text="iss.assignee"></span></span>
+                    <template x-for="tag in (iss.tags||[])" :key="tag">
+                      <span class="text-xs px-1.5 py-0.5 rounded bg-gray-50 text-gray-500" x-text="tag"></span>
+                    </template>
+                  </div>
+                </div>
+                <div class="shrink-0 relative" @click.stop>
+                  <span @click="toggleStatusMenu('issue',iss.record_id)" class="text-xs px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1 cursor-pointer" :class="issueStatusClass(iss.status)">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="issueStatusDot(iss.status)"></span>
+                    <span x-text="iss.status||'待处理'"></span>
+                  </span>
+                  <div x-show="statusMenu.type==='issue'&&statusMenu.id===iss.record_id" @click.away="closeStatusMenu()" class="absolute right-0 top-7 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20 min-w-[100px]">
+                    <template x-for="s in ['待处理','处理中','已解决','已搁置','已关闭']" :key="s">
+                      <button @click="changeIssueStatus(iss,s)" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-1.5" :class="s===iss.status?'text-[#37352F] font-medium':'text-gray-500'">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="issueStatusDot(s)"></span>
+                        <span x-text="s"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+              <div x-show="iss.solution" class="mt-2 text-xs text-gray-500 bg-gray-50 rounded px-2.5 py-1.5 line-clamp-2"><i class="ti ti-checklist mr-1"></i><span x-text="iss.solution"></span></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ═══ 想法库 Tab ═══ -->
+      <div x-show="tab==='ideas'">
+        <!-- 搜索 + 新建 -->
+        <div class="flex items-center gap-2 mb-4">
+          <div class="flex-1 flex items-center gap-0 border border-gray-200 rounded-lg overflow-hidden">
+            <input x-model="ideaSearch" @keyup="ideaDebounceSearch()" placeholder="搜索想法..." class="flex-1 px-3 py-2 text-sm text-[#37352F] outline-none placeholder-gray-400">
+            <button @click="loadIdeas()" class="px-3 py-2 text-gray-400 hover:text-[#37352F] transition-colors duration-150"><i class="ti ti-search text-sm"></i></button>
+          </div>
+          <button @click="openIdeaCreate()" class="flex items-center gap-1 bg-gray-900 text-white rounded-lg px-3 py-2 text-xs font-medium hover:bg-gray-800 transition">
+            <i class="ti ti-plus text-sm"></i> 新想法
+          </button>
+        </div>
+
+        <!-- 标签筛选 -->
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+          <button @click="ideaTag=''; loadIdeas()"
+            :class="!ideaTag?'bg-gray-900 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+            class="rounded-full px-3 py-1 text-xs font-medium transition whitespace-nowrap">全部</button>
+          <template x-for="t in ideaTagList" :key="t">
+            <button @click="ideaTag=t; loadIdeas()"
+              :class="ideaTag===t?'bg-gray-900 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+              class="rounded-full px-3 py-1 text-xs font-medium transition whitespace-nowrap" x-text="t"></button>
+          </template>
+        </div>
+
+        <!-- 加载中 -->
+        <div x-show="ideaLoading" class="text-center py-10 text-gray-400">
+          <i class="ti ti-loader animate-spin text-lg"></i>
+          <div class="mt-2 text-sm">加载中</div>
+        </div>
+
+        <!-- 空状态 -->
+        <div x-show="!ideaLoading && ideaList.length===0" class="text-center py-14">
+          <i class="ti ti-bulb text-4xl text-gray-300 block mb-3"></i>
+          <div class="text-gray-400 text-sm mb-4">还没有想法？记录你的第一个灵感吧</div>
+          <button @click="openIdeaCreate()" class="bg-gray-100 text-gray-700 rounded-lg px-4 py-2 text-xs font-medium hover:bg-gray-200 transition">
+            <i class="ti ti-plus text-sm mr-1"></i>记录想法
+          </button>
+        </div>
+
+        <!-- 想法卡片列表 -->
+        <div class="space-y-2" x-show="!ideaLoading && ideaList.length>0">
+          <template x-for="idea in ideaList" :key="idea.record_id">
+            <div @click="openIdeaDetail(idea)" class="bg-white border border-gray-100 rounded-lg px-4 py-3 shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer group">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-400" x-text="idea.number"></span>
+                    <h3 class="text-sm font-medium text-[#37352F] truncate group-hover:text-gray-700" x-text="idea.title"></h3>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1.5">
+                    <!-- 状态 -->
+                    <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      :class="ideaStatusClass(idea.status)" x-text="idea.status"></span>
+                    <!-- 标签 -->
+                    <template x-for="tag in (idea.tags||[]).slice(0,3)" :key="tag">
+                      <span class="text-[10px] text-gray-400 bg-gray-50 rounded px-1.5 py-0.5" x-text="tag"></span>
+                    </template>
+                    <!-- 优先级 -->
+                    <span class="text-[10px] text-gray-400" x-text="idea.priority"></span>
+                  </div>
+                  <!-- 描述预览 -->
+                  <p x-show="idea.description" class="text-xs text-gray-400 mt-1.5 line-clamp-2" x-text="idea.description"></p>
+                </div>
+                <!-- 状态切换菜单 -->
+                <div class="relative flex-shrink-0">
+                  <button @click.stop="ideaStatusMenu=ideaStatusMenu===idea.record_id?'':idea.record_id"
+                    class="text-gray-300 hover:text-gray-500 transition p-1">
+                    <i class="ti ti-dots-vertical text-sm"></i>
+                  </button>
+                  <div x-show="ideaStatusMenu===idea.record_id" @click.stop
+                    class="absolute right-0 top-8 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-20 w-28">
+                    <template x-for="s in ideaStatusList" :key="s">
+                      <button @click.stop="changeIdeaStatus(idea.record_id, s)"
+                        class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition" x-text="s"></button>
+                    </template>
+                    <hr class="my-1 border-gray-100">
+                    <button @click.stop="deleteIdeaConfirm(idea.record_id)" class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ═══ 固定提醒 Tab ═══ -->
+      <div x-show="tab==='reminders'">
+        <!-- 顶部操作栏 -->
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-sm text-gray-400" x-text="reminderList.length+'项提醒'"></div>
+          <button @click="openReminderCreate()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition">
+            <i class="ti ti-plus text-xs"></i>新建
+          </button>
+        </div>
+
+        <!-- 加载中 -->
+        <div x-show="reminderLoading" class="text-center py-10 dot-bounce"><span></span><span></span><span></span></div>
+
+        <!-- 空状态 -->
+        <div x-show="!reminderLoading && reminderList.length===0" class="text-center py-14">
+          <i class="ti ti-alarm text-4xl text-gray-300 block mb-3"></i>
+          <div class="text-gray-400 text-sm mb-4">暂无固定提醒</div>
+          <button @click="openReminderCreate()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition">
+            <i class="ti ti-plus text-xs"></i>新建提醒
+          </button>
+        </div>
+
+        <!-- 卡片列表 -->
+        <div x-show="!reminderLoading && reminderList.length>0" class="space-y-2">
+          <template x-for="r in reminderList" :key="r.record_id">
+            <div class="bg-white border border-gray-100 rounded-lg px-4 py-3 shadow-sm hover:shadow-md transition-shadow duration-150 group">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-sm font-medium text-[#37352F] truncate" x-text="r.title"></span>
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
+                      :class="r.status==='启用'?'bg-green-50 text-green-600':'bg-gray-100 text-gray-400'"
+                      x-text="r.status"></span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-gray-400">
+                    <span class="inline-flex items-center gap-1">
+                      <i class="ti ti-repeat text-[10px]"></i>
+                      <span x-text="r.cycle_desc"></span>
+                    </span>
+                    <span class="inline-flex items-center gap-1">
+                      <i class="ti ti-clock text-[10px]"></i>
+                      <span x-text="r.remind_time"></span>
+                    </span>
+                    <span x-show="r.note" class="truncate max-w-[120px]" x-text="r.note"></span>
+                  </div>
+                </div>
+                <!-- 操作区 -->
+                <div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button @click="openReminderEdit(r)" class="p-1 rounded hover:bg-gray-100 transition text-gray-400 hover:text-[#37352F]"><i class="ti ti-pencil text-xs"></i></button>
+                  <div class="relative">
+                    <button @click.stop="reminderStatusMenu = reminderStatusMenu===r.record_id?'':r.record_id" class="p-1 rounded hover:bg-gray-100 transition text-gray-400 hover:text-[#37352F]"><i class="ti ti-dots-vertical text-xs"></i></button>
+                    <div x-show="reminderStatusMenu===r.record_id" @click.away="reminderStatusMenu=''" class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-100 py-1 w-24 z-20">
+                      <button @click.stop="changeReminderStatus(r.record_id, r.status==='启用'?'停用':'启用')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition" x-text="r.status==='启用'?'停用':'启用'"></button>
+                      <button @click.stop="deleteReminderConfirm(r.record_id)" class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition">删除</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- ═══ 笔记本 Tab ═══ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div x-show="!showHelp && tab==='notebooks'" class="flex-1 mx-auto w-full px-4 sm:px-6 py-4" style="max-width:100%">
+      <div class="flex" style="gap:0;min-height:calc(100vh - 140px)">
+
+        <!-- ── 左侧栏：文件树 ── -->
+        <div class="flex flex-col border-r border-gray-200" style="width:240px;flex-shrink:0" x-show="!noteReading">
+          <!-- 顶部操作栏 -->
+          <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+            <span class="text-xs font-medium text-gray-500">笔记本</span>
+            <div class="flex items-center gap-1">
+              <button @click="nbCreateFolder()" title="新建文件夹" class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-[#37352F] transition">
+                <i class="ti ti-folder-plus text-sm"></i>
+              </button>
+              <button @click="nbCreateFile()" title="新建笔记" class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-[#37352F] transition">
+                <i class="ti ti-file-plus text-sm"></i>
+              </button>
+              <button @click="loadNoteTree()" title="刷新" class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-[#37352F] transition">
+                <i class="ti ti-refresh text-sm"></i>
+              </button>
+            </div>
+          </div>
+          <!-- 文件树 -->
+          <div class="flex-1 overflow-y-auto py-1 px-1">
+            <template x-if="noteTree && noteTree.children && noteTree.children.length===0">
+              <div class="text-center py-8 px-3">
+                <i class="ti ti-notebook text-3xl text-gray-300"></i>
+                <div class="text-xs text-gray-400 mt-2 mb-3">还没有笔记本</div>
+                <button @click="nbCreateFile()" class="text-xs text-[#37352F] underline hover:text-black transition">新建第一篇笔记</button>
+              </div>
+            </template>
+            <!-- 递归渲染文件树 -->
+            <template x-for="node in noteTree.children || []" :key="node.path">
+              <div class="nb-tree-node" x-data="{ hovered: false }">
+                <template x-if="node.type==='folder'">
+                  <div>
+                    <div class="flex items-center gap-1 px-2 py-1 cursor-pointer rounded hover:bg-gray-50 group transition"
+                      @click="node.expanded = !node.expanded"
+                      @mouseenter="hovered=true" @mouseleave="hovered=false">
+                      <i class="ti text-xs" :class="node.expanded ? 'ti-chevron-down' : 'ti-chevron-right'"></i>
+                      <i class="ti ti-folder text-sm text-amber-500"></i>
+                      <span class="text-sm flex-1 truncate" x-text="node.name"></span>
+                      <div x-show="hovered" class="flex items-center gap-0.5 flex-shrink-0">
+                        <button @click.stop="nbCreateFileIn(node.path)" title="新建笔记" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition">
+                          <i class="ti ti-file-plus text-xs"></i>
+                        </button>
+                        <button @click.stop="nbCreateFolderIn(node.path)" title="新建子文件夹" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition">
+                          <i class="ti ti-folder-plus text-xs"></i>
+                        </button>
+                        <button @click.stop="nbRename(node)" title="重命名" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition">
+                          <i class="ti ti-pencil text-xs"></i>
+                        </button>
+                        <button @click.stop="nbDelete(node)" title="删除" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition">
+                          <i class="ti ti-trash text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <!-- 子节点（展开时） -->
+                    <div x-show="node.expanded" class="ml-3" x-cloak>
+                      <template x-for="child in node.children || []" :key="child.path">
+                        <div x-data="{ childHovered: false }">
+                          <template x-if="child.type==='folder'">
+                            <div>
+                              <div class="flex items-center gap-1 px-2 py-1 cursor-pointer rounded hover:bg-gray-50 group transition"
+                                @click="child.expanded = !child.expanded"
+                                @mouseenter="childHovered=true" @mouseleave="childHovered=false">
+                                <i class="ti text-xs" :class="child.expanded ? 'ti-chevron-down' : 'ti-chevron-right'"></i>
+                                <i class="ti ti-folder text-sm text-amber-500"></i>
+                                <span class="text-sm flex-1 truncate" x-text="child.name"></span>
+                                <div x-show="childHovered" class="flex items-center gap-0.5 flex-shrink-0">
+                                  <button @click.stop="nbCreateFileIn(child.path)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition"><i class="ti ti-file-plus text-xs"></i></button>
+                                  <button @click.stop="nbRename(child)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition"><i class="ti ti-pencil text-xs"></i></button>
+                                  <button @click.stop="nbDelete(child)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition"><i class="ti ti-trash text-xs"></i></button>
+                                </div>
+                              </div>
+                              <div x-show="child.expanded" class="ml-3" x-cloak>
+                                <template x-for="gc in child.children || []" :key="gc.path">
+                                  <div x-data="{ gHovered: false }" class="flex items-center gap-1 px-2 py-1 cursor-pointer rounded hover:bg-gray-50 group transition"
+                                    :class="nbCurrentPath===gc.path ? 'bg-blue-50 text-blue-600' : ''"
+                                    @click="gc.type==='file' && nbOpen(gc.path)"
+                                    @mouseenter="gHovered=true" @mouseleave="gHovered=false">
+                                    <i class="ti text-xs ti-chevron-right opacity-0"></i>
+                                    <i class="ti text-sm" :class="gc.type==='folder' ? 'ti-folder text-amber-500' : 'ti-file-text text-gray-400'"></i>
+                                    <span class="text-sm flex-1 truncate" x-text="gc.name"></span>
+                                    <div x-show="gHovered" class="flex items-center gap-0.5 flex-shrink-0">
+                                      <button @click.stop="nbRename(gc)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition"><i class="ti ti-pencil text-xs"></i></button>
+                                      <button @click.stop="nbDelete(gc)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition"><i class="ti ti-trash text-xs"></i></button>
+                                    </div>
+                                  </div>
+                                </template>
+                              </div>
+                            </div>
+                          </template>
+                          <template x-if="child.type==='file'">
+                            <div class="flex items-center gap-1 px-2 py-1 cursor-pointer rounded hover:bg-gray-50 group transition"
+                              :class="nbCurrentPath===child.path ? 'bg-blue-50 text-blue-600' : ''"
+                              @click="nbOpen(child.path)"
+                              @mouseenter="childHovered=true" @mouseleave="childHovered=false">
+                              <i class="ti text-xs ti-chevron-right opacity-0"></i>
+                              <i class="ti ti-file-text text-sm text-gray-400"></i>
+                              <span class="text-sm flex-1 truncate" x-text="child.name.replace(/\.html$/,'')"></span>
+                              <div x-show="childHovered" class="flex items-center gap-0.5 flex-shrink-0">
+                                <button @click.stop="nbRename(child)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition"><i class="ti ti-pencil text-xs"></i></button>
+                                <button @click.stop="nbDelete(child)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition"><i class="ti ti-trash text-xs"></i></button>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+                <template x-if="node.type==='file'">
+                  <div class="flex items-center gap-1 px-2 py-1 cursor-pointer rounded hover:bg-gray-50 group transition"
+                    :class="nbCurrentPath===node.path ? 'bg-blue-50 text-blue-600' : ''"
+                    @click="nbOpen(node.path)"
+                    @mouseenter="hovered=true" @mouseleave="hovered=false">
+                    <i class="ti text-xs ti-chevron-right opacity-0"></i>
+                    <i class="ti ti-file-text text-sm text-gray-400"></i>
+                    <span class="text-sm flex-1 truncate" x-text="node.name.replace(/\.html$/,'')"></span>
+                    <div x-show="hovered" class="flex items-center gap-0.5 flex-shrink-0">
+                      <button @click.stop="nbRename(node)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-[#37352F] transition"><i class="ti ti-pencil text-xs"></i></button>
+                      <button @click.stop="nbDelete(node)" class="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition"><i class="ti ti-trash text-xs"></i></button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- ── 右侧：编辑器/展示页 ── -->
+        <div class="flex-1 flex flex-col" style="min-width:0">
+
+          <!-- 无选中文件的空状态 -->
+          <template x-if="!nbCurrentPath && !noteReading">
+            <div class="flex-1 flex items-center justify-center">
+              <div class="text-center">
+                <i class="ti ti-notebook text-5xl text-gray-200"></i>
+                <div class="text-sm text-gray-400 mt-3">从左侧选择一个笔记，或新建一个</div>
+              </div>
+            </div>
+          </template>
+
+          <!-- 编辑模式 -->
+          <template x-if="nbCurrentPath && !noteReading">
+            <div class="flex flex-col h-full">
+              <!-- 编辑器顶栏 -->
+              <div class="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+                <div class="flex items-center gap-2 min-w-0">
+                  <i class="ti ti-file-text text-sm text-gray-400"></i>
+                  <span class="text-sm font-medium text-[#37352F] truncate" x-text="nbCurrentPath.split('/').pop().replace(/\.html$/,'')"></span>
+                  <span x-show="nbUnsaved" class="text-xs text-amber-500">●未保存</span>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button @click="nbToggleReading()" class="text-xs px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 text-[#37352F] transition flex items-center gap-1">
+                    <i class="ti ti-eye text-xs"></i>展示模式
+                  </button>
+                  <button @click="nbSave()" :disabled="nbSaving" class="text-xs px-3 py-1 rounded bg-[#37352F] text-white hover:bg-black disabled:opacity-50 transition flex items-center gap-1">
+                    <i class="ti ti-device-floppy text-xs"></i><span x-text="nbSaving?'保存中...':'保存'"></span>
+                  </button>
+                </div>
+              </div>
+              <!-- Quill 编辑器 -->
+              <div class="flex-1 overflow-y-auto">
+                <div id="note-toolbar">
+                  <span class="ql-formats">
+                    <select class="ql-font"></select>
+                    <select class="ql-size"></select>
+                  </span>
+                  <span class="ql-formats">
+                    <button class="ql-bold"></button>
+                    <button class="ql-italic"></button>
+                    <button class="ql-underline"></button>
+                    <button class="ql-strike"></button>
+                  </span>
+                  <span class="ql-formats">
+                    <select class="ql-color"></select>
+                    <select class="ql-background"></select>
+                  </span>
+                  <span class="ql-formats">
+                    <button class="ql-align" value=""></button>
+                    <button class="ql-align" value="center"></button>
+                    <button class="ql-align" value="right"></button>
+                    <button class="ql-align" value="justify"></button>
+                  </span>
+                  <span class="ql-formats">
+                    <button class="ql-list" value="ordered"></button>
+                    <button class="ql-list" value="bullet"></button>
+                    <button class="ql-blockquote"></button>
+                    <button class="ql-code-block"></button>
+                  </span>
+                  <span class="ql-formats">
+                    <select class="ql-lineheight" title="行间距"></select>
+                  </span>
+                  <span class="ql-formats">
+                    <button class="ql-link"></button>
+                    <button class="ql-image"></button>
+                    <button class="ql-divider" title="分割线"><i class="ti ti-minus" style="font-size:14px"></i></button>
+                  </span>
+                  <span class="ql-formats">
+                    <button class="ql-clean"></button>
+                  </span>
+                </div>
+                <div id="note-editor"></div>
+              </div>
+            </div>
+          </template>
+
+          <!-- 展示模式 -->
+          <template x-if="noteReading">
+            <div class="flex flex-col h-full">
+              <!-- 展示页顶栏 -->
+              <div class="flex items-center justify-between px-4 py-2 border-b border-gray-100 flex-wrap gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <i class="ti ti-file-text text-sm text-gray-400"></i>
+                  <span class="text-sm font-medium text-[#37352F] truncate" x-text="nbCurrentPath.split('/').pop().replace(/\.html$/,'')"></span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <!-- 高亮工具 -->
+                  <div class="flex items-center gap-1 border border-gray-200 rounded px-1 py-0.5">
+                    <span class="text-xs text-gray-400 mr-1">标注</span>
+                    <button @click="nbHighlight('yellow')" class="w-5 h-5 rounded border border-gray-300 hover:scale-110 transition" style="background:#fff59d" title="黄色高亮"></button>
+                    <button @click="nbHighlight('blue')" class="w-5 h-5 rounded border border-gray-300 hover:scale-110 transition" style="background:#bbdefb" title="蓝色高亮"></button>
+                    <button @click="nbHighlight('green')" class="w-5 h-5 rounded border border-gray-300 hover:scale-110 transition" style="background:#c8e6c9" title="绿色高亮"></button>
+                    <button @click="nbHighlight('pink')" class="w-5 h-5 rounded border border-gray-300 hover:scale-110 transition" style="background:#f8bbd0" title="粉色高亮"></button>
+                    <button @click="nbClearHighlight()" class="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 transition" title="清除标注">
+                      <i class="ti ti-eraser text-xs"></i>
+                    </button>
+                  </div>
+                  <!-- 画线工具 -->
+                  <button @click="nbToggleDraw()" class="text-xs px-2 py-1 rounded border transition flex items-center gap-1"
+                    :class="nbDrawing ? 'bg-red-50 border-red-300 text-red-500' : 'border-gray-200 hover:bg-gray-50 text-[#37352F]'">
+                    <i class="ti ti-pencil text-xs"></i><span x-text="nbDrawing?'停止画线':'画横线'"></span>
+                  </button>
+                  <!-- 段落序号 -->
+                  <button @click="nbToggleParaNumber()" class="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 text-[#37352F] transition flex items-center gap-1"
+                    :class="nbParaNumber && 'bg-blue-50 border-blue-300 text-blue-600'">
+                    <i class="ti ti-list-numbers text-xs"></i>段落序号
+                  </button>
+                  <button @click="nbSaveReading()" class="text-xs px-3 py-1 rounded bg-[#37352F] text-white hover:bg-black transition flex items-center gap-1">
+                    <i class="ti ti-device-floppy text-xs"></i>保存标注
+                  </button>
+                  <button @click="noteReading=false" class="text-xs px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 text-[#37352F] transition flex items-center gap-1">
+                    <i class="ti ti-pencil text-xs"></i>返回编辑
+                  </button>
+                </div>
+              </div>
+              <!-- 展示内容区 -->
+              <div class="flex-1 overflow-y-auto relative" x-ref="readingContainer">
+                <div class="note-display-content max-w-3xl mx-auto px-6 py-6 relative"
+                  :class="nbParaNumber && 'auto-number'"
+                  x-ref="readingContent"
+                  x-html="nbDisplayContent"></div>
+                <!-- SVG 画线层 -->
+                <svg x-ref="drawSvg" class="absolute inset-0 w-full h-full pointer-events-none" x-show="nbDrawLines.length>0 || nbDrawing">
+                  <template x-for="(line, idx) in nbDrawLines" :key="idx">
+                    <line :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
+                      class="draw-line pointer-events-auto"
+                      @click="nbRemoveLine(idx)"></line>
+                  </template>
+                </svg>
+              </div>
+            </div>
+          </template>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 想法详情模态框 ═══ -->
+    <div x-show="ideaDetail" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keyup.escape.window="ideaDetail=null">
+      <div class="absolute inset-0 bg-black/20" @click="ideaDetail=null"></div>
+      <div class="relative bg-white rounded-t-xl sm:rounded-xl w-full sm:w-[480px] max-h-[85vh] overflow-y-auto shadow-xl p-5 sm:p-6 z-10">
+        <template x-if="ideaDetail">
+          <div>
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div class="min-w-0 flex-1">
+                <div class="text-xs text-gray-400 mb-1" x-text="ideaDetail.number"></div>
+                <h2 class="text-base font-semibold text-[#37352F]" x-text="ideaDetail.title"></h2>
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button @click="openIdeaEdit(ideaDetail)" class="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-[#37352F]"><i class="ti ti-pencil text-sm"></i></button>
+                <button @click="ideaDetail=null" class="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-[#37352F]"><i class="ti ti-x text-sm"></i></button>
+              </div>
+            </div>
+            <!-- 状态+优先级+标签 -->
+            <div class="flex items-center gap-2 mb-3 flex-wrap">
+              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                :class="ideaStatusClass(ideaDetail.status)" x-text="ideaDetail.status"></span>
+              <span class="text-[10px] text-gray-400" x-text="ideaDetail.priority"></span>
+              <template x-for="tag in (ideaDetail.tags||[])" :key="tag">
+                <span class="text-[10px] text-gray-500 bg-gray-50 rounded px-1.5 py-0.5" x-text="tag"></span>
+              </template>
+            </div>
+            <!-- 描述 -->
+            <div x-show="ideaDetail.description" class="text-sm text-[#37352F] leading-relaxed mb-3 whitespace-pre-wrap" x-text="ideaDetail.description"></div>
+            <!-- 来源 -->
+            <div x-show="ideaDetail.source" class="text-xs text-gray-400 mb-2">
+              <i class="ti ti-link text-[10px] mr-1"></i><span x-text="ideaDetail.source"></span>
+            </div>
+            <!-- 关联 -->
+            <div x-show="ideaDetail.related" class="text-xs text-gray-400 mb-2">
+              <i class="ti ti-arrows-split text-[10px] mr-1"></i>关联：<span x-text="ideaDetail.related"></span>
+            </div>
+            <!-- 最后分析 -->
+            <div x-show="ideaDetail.last_analysis" class="mt-3 p-3 bg-gray-50 rounded-lg">
+              <div class="text-[10px] text-gray-400 mb-1 font-medium">AI 分析</div>
+              <div class="text-xs text-[#37352F] leading-relaxed whitespace-pre-wrap" x-text="ideaDetail.last_analysis"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ═══ 想法新建/编辑模态框 ═══ -->
+    <div x-show="ideaModal.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keyup.escape.window="ideaModal.show=false">
+      <div class="absolute inset-0 bg-black/20" @click="ideaModal.show=false"></div>
+      <div class="relative bg-white rounded-t-xl sm:rounded-xl w-full sm:w-[480px] max-h-[85vh] overflow-y-auto shadow-xl p-5 sm:p-6 z-10">
+        <h3 class="text-sm font-semibold text-[#37352F] mb-4">
+          <i class="ti ti-bulb mr-1"></i>
+          <span x-text="ideaModal.isNew?'记录新想法':'编辑想法'"></span>
+        </h3>
+        <!-- 标题 -->
+        <input x-model="ideaModal.title" placeholder="一句话描述你的想法" class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-[#37352F] focus:border-gray-400 outline-none mb-3">
+        <!-- 详细描述 -->
+        <textarea x-model="ideaModal.description" placeholder="详细说明（可选）" rows="3" class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-[#37352F] focus:border-gray-400 outline-none resize-none mb-3"></textarea>
+        <!-- 标签 -->
+        <div class="mb-3">
+          <div class="text-xs text-gray-400 mb-1.5">标签</div>
+          <div class="flex flex-wrap gap-1.5">
+            <template x-for="t in ideaTagList" :key="t">
+              <button @click="toggleIdeaTag(t)"
+                :class="ideaModal.tags.includes(t)?'bg-gray-900 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                class="rounded-full px-2.5 py-1 text-[11px] transition" x-text="t"></button>
+            </template>
+          </div>
+        </div>
+        <!-- 来源场景 -->
+        <input x-model="ideaModal.source" placeholder="来源场景（可选）" class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-[#37352F] focus:border-gray-400 outline-none mb-3">
+        <!-- 优先级 -->
+        <div class="mb-4">
+          <div class="text-xs text-gray-400 mb-1.5">优先级</div>
+          <div class="flex gap-2">
+            <template x-for="p in ['⭐⭐⭐高','⭐⭐中','⭐低']" :key="p">
+              <button @click="ideaModal.priority=p"
+                :class="ideaModal.priority===p?'bg-gray-900 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                class="rounded-lg px-3 py-1.5 text-xs font-medium transition" x-text="p"></button>
+            </template>
+          </div>
+        </div>
+        <!-- 底部按钮 -->
+        <div class="flex gap-2">
+          <button @click="ideaModal.show=false" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition">取消</button>
+          <button @click="saveIdea()" :disabled="ideaModal.loading" class="flex-1 py-2.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition disabled:opacity-50 disabled:cursor-not-allowed" x-text="ideaModal.loading?'保存中...':'保存'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 想法删除确认 ═══ -->
+    <div x-show="ideaDeleteId" class="fixed inset-0 bg-black/20 z-50 flex items-center justify-center" @click.self="ideaDeleteId=''">
+      <div class="bg-white rounded-xl shadow-xl border border-gray-200 p-5 w-72">
+        <p class="text-sm text-[#37352F] mb-4">确认删除这个想法？</p>
+        <div class="flex gap-2 justify-end">
+          <button @click="ideaDeleteId=''" class="bg-gray-100 text-gray-700 rounded-lg px-3 py-1.5 text-xs hover:bg-gray-200">取消</button>
+          <button @click="doDeleteIdea()" class="bg-red-500 text-white rounded-lg px-3 py-1.5 text-xs hover:bg-red-600">删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 固定提醒 新建/编辑模态框 ═══ -->
+    <div x-show="reminderModal.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keyup.escape.window="reminderModal.show=false">
+      <div class="absolute inset-0 bg-black/20" @click="reminderModal.show=false"></div>
+      <div class="relative bg-white rounded-t-xl sm:rounded-xl w-full sm:w-[480px] max-h-[85vh] overflow-y-auto shadow-xl p-5 sm:p-6 z-10">
+        <h2 class="text-base font-bold mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+          <i class="ti ti-alarm text-gray-400"></i>
+          <span x-text="reminderModal.isNew?'新建固定提醒':'编辑固定提醒'"></span>
+        </h2>
+        <!-- 标题 -->
+        <input x-model="reminderModal.title" placeholder="提醒事项" class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-[#37352F] focus:border-gray-400 outline-none mb-3">
+        <!-- 周期类型 -->
+        <div class="mb-3">
+          <label class="text-xs text-gray-400 mb-1 block">周期</label>
+          <div class="flex gap-2">
+            <template x-for="c in ['每天','按周','按月']" :key="c">
+              <button @click="reminderModal.cycle_type=c; reminderModal.weekday=''; reminderModal.month_day=0;"
+                class="flex-1 py-2 rounded-lg text-sm transition"
+                :class="reminderModal.cycle_type===c?'bg-[#37352F] text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                x-text="c"></button>
+            </template>
+          </div>
+        </div>
+        <!-- 子选项：按周 → 选周几 -->
+        <div x-show="reminderModal.cycle_type==='按周'" class="mb-3">
+          <label class="text-xs text-gray-400 mb-1 block">提醒日</label>
+          <div class="flex gap-1.5">
+            <template x-for="d in [{v:'周一',l:'一'},{v:'周二',l:'二'},{v:'周三',l:'三'},{v:'周四',l:'四'},{v:'周五',l:'五'},{v:'周六',l:'六'},{v:'周日',l:'日'}]" :key="d.v">
+              <button @click="reminderModal.weekday=d.v"
+                class="flex-1 py-2 rounded-lg text-xs transition"
+                :class="reminderModal.weekday===d.v?'bg-[#37352F] text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                x-text="d.l"></button>
+            </template>
+          </div>
+        </div>
+        <!-- 子选项：按月 → 选日期 -->
+        <div x-show="reminderModal.cycle_type==='按月'" class="mb-3">
+          <label class="text-xs text-gray-400 mb-1 block">提醒日</label>
+          <div class="grid grid-cols-7 gap-1.5">
+            <template x-for="n in 31" :key="n">
+              <button @click="reminderModal.month_day=n"
+                class="py-1.5 rounded text-xs text-center transition"
+                :class="reminderModal.month_day===n?'bg-[#37352F] text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                x-text="n"></button>
+            </template>
+          </div>
+        </div>
+        <!-- 提醒时间 -->
+        <div class="mb-3">
+          <label class="text-xs text-gray-400 mb-1 block">提醒时间</label>
+          <div class="flex gap-2">
+            <select x-model="reminderModal.hour" class="flex-1 notion-input text-sm !py-2">
+              <template x-for="h in 24" :key="h-1">
+                <option :value="String(h-1).padStart(2,'0')" x-text="String(h-1).padStart(2,'0')+'时'"></option>
+              </template>
+            </select>
+            <span class="text-gray-300 self-center">:</span>
+            <select x-model="reminderModal.minute" class="flex-1 notion-input text-sm !py-2">
+              <option value="00">00分</option>
+              <option value="30">30分</option>
+            </select>
+          </div>
+        </div>
+        <!-- 备注 -->
+        <textarea x-model="reminderModal.note" placeholder="备注（可选）" rows="2" class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-[#37352F] focus:border-gray-400 outline-none resize-none mb-4"></textarea>
+        <!-- 按钮 -->
+        <div class="flex gap-2">
+          <button @click="reminderModal.show=false" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition">取消</button>
+          <button @click="saveReminder()" :disabled="reminderModal.loading" class="flex-1 py-2.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition disabled:opacity-50 disabled:cursor-not-allowed" x-text="reminderModal.loading?'保存中...':'保存'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 固定提醒删除确认 ═══ -->
+    <div x-show="reminderDeleteId" class="fixed inset-0 bg-black/20 z-50 flex items-center justify-center" @click.self="reminderDeleteId=''">
+      <div class="bg-white rounded-xl shadow-xl border border-gray-200 p-5 w-72">
+        <p class="text-sm text-[#37352F] mb-4">确认删除这个提醒？</p>
+        <div class="flex gap-2 justify-end">
+          <button @click="reminderDeleteId=''" class="bg-gray-100 text-gray-700 rounded-lg px-3 py-1.5 text-xs hover:bg-gray-200">取消</button>
+          <button @click="doDeleteReminder()" class="bg-red-500 text-white rounded-lg px-3 py-1.5 text-xs hover:bg-red-600">删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 帮助页面 ═══ -->
+    <div x-show="showHelp" x-transition class="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-6" style="font-family:'Microsoft YaHei','微软雅黑',sans-serif;color:#37352F">
+      <!-- 顶部 -->
+      <div class="flex items-center gap-3 mb-8">
+        <button @click="showHelp=false" class="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-150 text-gray-400 hover:text-[#37352F]"><i class="ti ti-arrow-left text-lg"></i></button>
+        <div>
+          <h1 class="text-xl font-bold" style="letter-spacing:1px">Ybooks 功能手册</h1>
+          <p class="text-xs text-gray-400 mt-0.5">v1.0 · 2026</p>
+        </div>
+      </div>
+
+      <!-- 系统概览 -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-info-circle text-gray-400"></i>系统概览</h2>
+        <p class="text-sm leading-relaxed text-gray-600">Ybooks 是一个轻量级工作看板系统，以飞书多维表格为唯一数据源（无本地数据库），提供 Web 端的<strong>任务管理</strong>、<strong>今日工作安排</strong>、<strong>问题跟踪</strong>三大核心能力。数据同时也可通过飞书私聊机器人（工作助理）进行语音/文字交互式操作。</p>
+      </section>
+
+      <!-- 认证与安全 -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-lock text-gray-400"></i>认证与安全</h2>
+        <div class="space-y-2 text-sm text-gray-600">
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span>密码登录 — 访问时需输入密码</span></div>
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span>Cookie 会话 — HttpOnly Cookie，有效期 <strong>30天</strong>，期间免登录</span></div>
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span>自动检测 — 每次打开页面自动检查登录状态</span></div>
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span>安全退出 — 右上角"退出"按钮清除 Cookie</span></div>
+        </div>
+      </section>
+
+      <!-- 三个Tab -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-layout-tabs text-gray-400"></i>三大模块</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="rounded-lg border border-gray-100 p-4">
+            <div class="flex items-center gap-2 mb-2"><i class="ti ti-list-check text-blue-500"></i><span class="font-semibold text-sm">任务列表</span></div>
+            <p class="text-xs text-gray-500 leading-relaxed">全量任务管理，支持筛选、排序、搜索、新建、编辑、下载</p>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-4">
+            <div class="flex items-center gap-2 mb-2"><i class="ti ti-calendar-event text-emerald-500"></i><span class="font-semibold text-sm">今日工作</span></div>
+            <p class="text-xs text-gray-500 leading-relaxed">今日截止任务的分类看板视图，默认首页，支持快速新建和删除</p>
+          </div>
+          <div class="rounded-lg border border-gray-100 p-4">
+            <div class="flex items-center gap-2 mb-2"><i class="ti ti-bulb text-amber-500"></i><span class="font-semibold text-sm">问题列表</span></div>
+            <p class="text-xs text-gray-500 leading-relaxed">问题跟踪与解决，支持来源/标签筛选，解决方案可一键创建任务</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 任务列表 -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-list-check text-gray-400"></i>任务列表</h2>
+
+        <h3 class="text-sm font-semibold mb-2 text-gray-700">卡片信息</h3>
+        <p class="text-sm text-gray-500 mb-3 leading-relaxed">每张卡片展示：任务编号（T019）、标题、🔔提醒标记、✅完成标记、分类标签（4色）、截止时间（过期变红）、负责人、描述（2行截断）、进度备注。已完成任务整体半透明弱化。</p>
+
+        <h3 class="text-sm font-semibold mb-2 text-gray-700">筛选（4维度）</h3>
+        <div class="rounded-lg bg-gray-50 p-3 mb-3 text-sm space-y-1.5">
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">状态</span><span>全部 / 进行中 / 已完成 / 已取消 / 已过期（默认"进行中"）</span></div>
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">日期</span><span>起始~截止日期范围选择器，支持单端筛选</span></div>
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">分类</span><span>A+工作 / 地铁工作 / 个人提升 / 生活日常</span></div>
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">搜索</span><span>按标题、描述、编号模糊匹配</span></div>
+        </div>
+
+        <h3 class="text-sm font-semibold mb-2 text-gray-700">排序（7种方式）</h3>
+        <div class="flex flex-wrap gap-2 mb-3 text-xs">
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">截止时间 ↑</span>
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">截止时间 ↓</span>
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">创建时间 ↓</span>
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">创建时间 ↑</span>
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">标题 A→Z</span>
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">标题 Z→A</span>
+          <span class="px-2 py-1 rounded bg-gray-100 text-gray-600">状态排序</span>
+        </div>
+
+        <h3 class="text-sm font-semibold mb-2 text-gray-700">新建/编辑任务</h3>
+        <div class="rounded-lg bg-gray-50 p-3 text-sm space-y-1.5 text-gray-600">
+          <div><strong class="text-gray-700">标题</strong>（必填）— 要做什么？</div>
+          <div><strong class="text-gray-700">描述</strong>（选填）— 补充说明</div>
+          <div><strong class="text-gray-700">截止时间</strong>（选填）— 精确到分钟</div>
+          <div><strong class="text-gray-700">分类</strong>— 4种分类可选</div>
+          <div><strong class="text-gray-700">负责人</strong>— 默认"洋哥"</div>
+          <div><strong class="text-gray-700">工作频率</strong>— 不重复 / 每天 / 每周 / 每月 / 自定义（X天/次）</div>
+          <div><strong class="text-gray-700">到时提醒我</strong>— 需先设置截止时间才能勾选</div>
+          <div><strong class="text-gray-700">进度备注</strong>— 仅编辑模式可更新</div>
+        </div>
+      </section>
+
+      <!-- 今日工作 -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-calendar-event text-gray-400"></i>今日工作（看板视图）</h2>
+        <p class="text-sm text-gray-500 mb-3 leading-relaxed">按分类分组的横向看板，每个分类一列（310px宽），空分类自动隐藏。</p>
+
+        <h3 class="text-sm font-semibold mb-2 text-gray-700">分类颜色对照</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full" style="background:#6BCB77"></span>🔵 A+工作</div>
+          <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full" style="background:#FF9F43"></span>🟠 地铁工作</div>
+          <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full" style="background:#5B9BD5"></span>🟢 个人提升</div>
+          <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full" style="background:#9B72CF"></span>🟣 生活日常</div>
+        </div>
+
+        <div class="space-y-2 text-sm text-gray-600">
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span><strong>手风琴折叠</strong>— 分类标题栏可点击折叠/展开</span></div>
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span><strong>快捷新建</strong>— 每列底部"+New"按钮，自动继承当前分类，截止默认23:59</span></div>
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span><strong>删除任务</strong>— Hover 卡片右上角出现删除按钮</span></div>
+          <div class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5"><i class="ti ti-check text-xs"></i></span><span><strong>快捷状态</strong>— 点击状态胶囊直接切换</span></div>
+        </div>
+      </section>
+
+      <!-- 问题列表 -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-bulb text-gray-400"></i>问题列表</h2>
+
+        <h3 class="text-sm font-semibold mb-2 text-gray-700">筛选（4维度）</h3>
+        <div class="rounded-lg bg-gray-50 p-3 mb-3 text-sm space-y-1.5">
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">状态</span><span>待处理🟡 / 处理中🔵 / 已解决🟢 / 已搁置⚪ / 已关闭🔴</span></div>
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">来源</span><span>例会 / 检查 / 经营 / 客户 / 运维 / 数据 / 其他</span></div>
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">标签</span><span>产品质量、服务体验、流程规范、人员管理等13种</span></div>
+          <div class="flex items-center gap-2"><span class="w-16 shrink-0 text-gray-400">搜索</span><span>按问题描述和编号匹配</span></div>
+        </div>
+
+        <div class="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-amber-800">
+          <strong>💡 问题→任务联动：</strong>编辑问题时填写解决方案，勾选「将解决方案创建为新任务」，保存时自动创建关联任务。
+        </div>
+      </section>
+
+      <!-- 隐性功能 -->
+      <section class="mb-8">
+        <h2 class="text-base font-bold mb-3 pb-2 border-b border-gray-100 flex items-center gap-2"><i class="ti ti-sparkles text-gray-400"></i>隐性功能</h2>
+        <div class="space-y-3 text-sm text-gray-600">
+          <div class="rounded-lg bg-gray-50 p-3">
+            <div class="font-semibold text-gray-700 mb-1">智能缓存（脏标记）</div>
+            切换Tab只刷新数据有变化的Tab，写操作自动标记相关Tab为"脏"，实现切换秒开。
+          </div>
+          <div class="rounded-lg bg-gray-50 p-3">
+            <div class="font-semibold text-gray-700 mb-1">双向数据同步</div>
+            飞书多维表格为唯一数据源。Web端操作实时同步飞书，飞书机器人创建的任务也出现在Ybooks中。
+          </div>
+          <div class="rounded-lg bg-gray-50 p-3">
+            <div class="font-semibold text-gray-700 mb-1">自动过期检查</div>
+            加载任务时自动将「进行中+截止时间已过」的任务更新为「已过期」。频率>0的重复任务不受影响。
+          </div>
+          <div class="rounded-lg bg-gray-50 p-3">
+            <div class="font-semibold text-gray-700 mb-1">精准提醒联动</div>
+            开启提醒的任务显示🔔铃铛图标。后台脚本每分钟检查，到点通过飞书私聊推送提醒。
+          </div>
+          <div class="rounded-lg bg-gray-50 p-3">
+            <div class="font-semibold text-gray-700 mb-1">移动端适配</div>
+            全响应式设计，模态框移动端底部弹出，看板横向滚动，禁止页面缩放。
+          </div>
+          <div class="rounded-lg bg-gray-50 p-3">
+            <div class="font-semibold text-gray-700 mb-1">键盘快捷操作</div>
+            <strong>Escape</strong> 关闭模态框 · <strong>Enter</strong> 搜索框内触发搜索
+          </div>
+        </div>
+      </section>
+
+      <!-- 底部 -->
+      <div class="text-center text-xs text-gray-300 pt-6 pb-4 border-t border-gray-50">Ybooks · 轻量工作看板 · 2026</div>
+    </div>
+
+    <!-- 任务编辑/新建模态 -->
+    <div x-show="taskModal.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keyup.escape.window="taskModal.show=false">
+      <div class="absolute inset-0 bg-black/20" @click="taskModal.show=false"></div>
+      <div class="relative bg-white rounded-xl shadow-xl w-full sm:max-w-lg rounded-t-xl sm:rounded-b-xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 z-10">
+        <h3 class="text-base font-semibold text-[#37352F] mb-5 flex items-center gap-2">
+          <span x-text="taskModal.isNew?'新建任务':'编辑任务'"></span>
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <div class="text-xs text-gray-400 mb-1.5">任务标题</div>
+            <input x-model="taskForm.title" placeholder="要做什么？" class="notion-input">
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 mb-1.5">任务描述</div>
+            <textarea x-model="taskForm.description" placeholder="补充说明（可选）" rows="4" class="notion-input resize-none"></textarea>
+          </div>
+          <!-- 第一行：分类 + 负责人 + 工作频率 + 状态 -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">分类</div>
+              <select x-model="taskForm.category" class="notion-input text-sm !py-2 w-full">
+                <option value="">选择分类</option>
+                <option value="🔵 A+工作">A+工作</option>
+                <option value="🟠 地铁工作">地铁工作</option>
+                <option value="🟢 个人提升">个人提升</option>
+                <option value="🟣 生活日常">生活日常</option>
+              </select>
+            </div>
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">负责人</div>
+              <input x-model="taskForm.assignee" placeholder="默认：洋哥" class="notion-input text-sm !py-2 w-full">
+            </div>
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">工作频率</div>
+              <select x-model="taskForm.frequencyType" class="notion-input text-sm !py-2 w-full" @change="if(taskForm.frequencyType!=='custom') taskForm.frequencyCustom=''">
+                <option value="">不重复</option>
+                <option value="1">每天</option>
+                <option value="7">每周</option>
+                <option value="30">每月</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">状态</div>
+              <select x-model="taskForm.status" class="notion-input text-sm !py-2 w-full">
+                <option value="进行中">进行中</option>
+                <option value="已完成">已完成</option>
+                <option value="已取消">已取消</option>
+                <option value="已过期">已过期</option>
+              </select>
+            </div>
+          </div>
+          <div x-show="taskForm.frequencyType==='custom'" class="flex items-center gap-2">
+            <input x-model.number="taskForm.frequencyCustom" type="number" min="1" placeholder="天数" class="notion-input w-20 text-sm !py-2">
+            <span class="text-xs text-gray-400 whitespace-nowrap">天/次</span>
+          </div>
+          <!-- 第二行：执行时间段(开始+结束) + 截止时间 -->
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">开始时间</div>
+              <select x-model="taskForm.time_start" class="notion-input text-sm !py-2 w-full">
+                <option value="">-</option>
+                <template x-for="t in timeOptions" :key="t">
+                  <option :value="t" x-text="t"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">结束时间</div>
+              <select x-model="taskForm.time_end" class="notion-input text-sm !py-2 w-full">
+                <option value="">-</option>
+                <template x-for="t in timeOptions" :key="t">
+                  <option :value="t" x-text="t"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <div class="text-xs text-gray-400 mb-1.5">截止时间</div>
+              <input type="datetime-local" x-model="taskForm.deadlineStr" class="notion-input text-sm !py-2 w-full">
+            </div>
+          </div>
+          <label class="flex items-center gap-2 select-none" :class="taskForm.deadline?'cursor-pointer':'cursor-not-allowed opacity-40'">
+            <input type="checkbox" x-model="taskForm.remind_me" class="w-4 h-4 rounded border-gray-300 text-[#37352F] focus:ring-[#37352F]" :disabled="!taskForm.deadline" @change="if(!$event.target.checked) taskForm.remind_me=false">
+            <span class="text-sm text-gray-600">到时提醒我</span>
+            <span class="text-xs text-gray-300">以截止时间为提醒</span>
+            <span x-show="!taskForm.deadline" class="text-xs text-gray-300">（需设置截止时间）</span>
+          </label>
+          <div x-show="!taskModal.isNew">
+            <div class="text-xs text-gray-400 mb-1.5">进度备注</div>
+            <textarea x-model="taskForm.progress" placeholder="记录最新进展" rows="3" class="notion-input resize-none"></textarea>
+          </div>
+          <div x-show="errMsg" x-text="errMsg" class="text-red-500 text-sm"><i class="ti ti-alert-circle mr-1"></i><span x-text="errMsg"></span></div>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button @click="taskModal.show=false" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors duration-150">取消</button>
+          <button @click="saveTask()" :disabled="taskModal.loading" class="flex-1 py-2.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" x-text="taskModal.loading?'保存中...':'保存'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问题编辑/新建模态 -->
+    <div x-show="issueModal.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keyup.escape.window="issueModal.show=false">
+      <div class="absolute inset-0 bg-black/20" @click="issueModal.show=false"></div>
+      <div class="relative bg-white rounded-xl shadow-xl w-full sm:max-w-lg rounded-t-xl sm:rounded-b-xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 z-10">
+        <h3 class="text-base font-semibold text-[#37352F] mb-5">
+          <span x-text="issueModal.isNew?'新建问题':'编辑问题'"></span>
+        </h3>
+        <div class="space-y-4">
+          <textarea x-model="issueForm.description" placeholder="问题描述" rows="2" class="notion-input resize-none"></textarea>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select x-model="issueForm.source" class="notion-input text-sm !py-2">
+              <option value="">问题来源</option>
+              <option value="📋 例会">例会</option>
+              <option value="🔍 检查">检查</option>
+              <option value="💼 经营">经营</option>
+              <option value="👥 客户">客户</option>
+              <option value="🔧 运维">运维</option>
+              <option value="📊 数据">数据</option>
+              <option value="🤔 其他">其他</option>
+            </select>
+            <select x-model="issueForm.status" class="notion-input text-sm !py-2">
+              <option value="待处理">待处理</option>
+              <option value="处理中">处理中</option>
+              <option value="已解决">已解决</option>
+              <option value="已搁置">已搁置</option>
+              <option value="已关闭">已关闭</option>
+            </select>
+          </div>
+          <input x-model="issueForm.assignee" placeholder="输入责任人姓名" class="notion-input">
+          <div x-show="!issueModal.isNew">
+            <div class="text-xs text-gray-400 mb-1.5">解决方案</div>
+            <textarea x-model="issueForm.solution" placeholder="解决方案" rows="2" class="notion-input resize-none"></textarea>
+            <label x-show="issueForm.solution" class="flex items-center gap-2 mt-2 cursor-pointer select-none">
+              <input type="checkbox" x-model="issueForm.createTaskFromSolution" class="w-4 h-4 rounded border-gray-300 text-[#37352F] focus:ring-[#37352F]">
+              <span class="text-sm text-gray-600">将解决方案创建为新任务</span>
+            </label>
+          </div>
+          <div x-show="errMsg" x-text="errMsg" class="text-red-500 text-sm"><i class="ti ti-alert-circle mr-1"></i><span x-text="errMsg"></span></div>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button @click="issueModal.show=false" class="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors duration-150">取消</button>
+          <button @click="saveIssue()" :disabled="issueModal.loading" class="flex-1 py-2.5 rounded-lg bg-[#37352F] text-white text-sm hover:bg-black transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed" x-text="issueModal.loading?'保存中...':'保存'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div x-show="toast.show" x-transition.duration.150 class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto sm:max-w-xs z-50 px-4 py-3 rounded-lg shadow-md text-sm flex items-center gap-2 bg-white border" :class="toast.type==='success'?'border-gray-200 text-[#37352F]':'border-red-200 text-red-600'">
+      <i class="ti text-sm" :class="toast.type==='success'?'ti-check text-emerald-500':'ti-x text-red-500'"></i>
+      <span x-text="toast.msg"></span>
+    </div>
+
+  </div>
+</template>
+
+<script>
+function app() {
+  return {
+    authed: false, token: '', err: '', loading: false,
+    showHelp: false,
+    tab: 'today',  // 默认显示今日工作安排
+    // 任务
+    tasks: [], taskLoading: false,
+    taskFilter: { status: '进行中', category: '', keyword: '', date_from: '', date_to: '' },
+    taskSortBy: 'deadline_asc',
+    taskModal: { show: false, isNew: true, loading: false },
+    taskForm: { title:'', description:'', deadline:'', category:'', project:'', status:'进行中', progress:'', frequencyType:'', frequencyCustom:'', assignee:'', remind_me: false, time_start: '', time_end: '' },
+    taskEditId: null,
+    // 今日工作安排
+    categoryList: ['🔵 A+工作', '🟠 地铁工作', '🟢 个人提升', '🟣 生活日常'],
+    todayTasks: [],
+    todayTotal: 0,
+    todayLoading: false,
+    newCard: { show: false, category: '', title: '', description: '', status: '进行中', project: '', assignee: '洋哥', time_start: '', time_end: '', remind_me: false, loading: false },
+    // 问题
+    issues: [], issueLoading: false,
+    issueFilter: { status: '待处理', source: '', assignee: '', keyword: '' },
+    issueModal: { show: false, isNew: true, loading: false },
+    issueForm: { description:'', source:'', tags:[], assignee:'', status:'待处理', solution:'' },
+    issueEditId: null,
+    statusMenu: { type: '', id: '' },
+    errMsg: '',
+    toast: { show: false, msg: '', type: 'success' },
+    // 笔记本
+    noteTree: { children: [] },
+    nbCurrentPath: '',
+    nbQuill: null,
+    nbUnsaved: false,
+    nbSaving: false,
+    noteReading: false,
+    nbDisplayContent: '',
+    nbAnnotations: [],
+    nbDrawing: false,
+    nbParaNumber: false,
+    nbDrawLines: [],
+    // 脏标记：各Tab数据是否需要刷新
+    dirty: { tasks: true, today: true, issues: true, ideas: true, reminders: true, notebooks: true },
+    // 想法库
+    ideaList: [], ideaLoading: false,
+    ideaSearch: '', ideaSearchTimer: null,
+    ideaTag: '', ideaTagList: ['产品','技术','商业模式','营销','运营','内容','管理','人性','个人成长','其他'],
+    ideaStatusList: ['灵感','探索中','已孵化','已落地','已搁置'],
+    ideaStatusMenu: '',
+    ideaDeleteId: '',
+    // 想法详情/编辑
+    ideaDetail: null,
+    ideaModal: { show: false, isNew: false, loading: false, record_id: '', title: '', description: '', tags: [], source: '', priority: '⭐⭐中' },
+    // 固定提醒
+    reminderList: [], reminderLoading: false,
+    reminderStatusMenu: '',
+    reminderDeleteId: '',
+    reminderModal: { show: false, isNew: false, loading: false, record_id: '', title: '', cycle_type: '每天', weekday: '', month_day: 0, hour: '09', minute: '00', note: '' },
+    // 时间段选项
+    timeOptions: Array.from({length: 37}, (_, i) => { const h = Math.floor((i*30+360)/60); const m = (i*30+360)%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }),
+    // 日期选项：从今天起往后60天
+    get dateOptions() {
+      const opts = []; const now = new Date();
+      for (let i = 0; i < 60; i++) {
+        const d = new Date(now); d.setDate(d.getDate() + i);
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        const weekdays = ['日','一','二','三','四','五','六'];
+        const label = (d.getMonth()+1)+'月'+d.getDate()+'日 周'+weekdays[d.getDay()];
+        opts.push({ v: mm+'-'+dd, label });
+      }
+      return opts;
+    },
+
+    async init() {
+      try {
+        let r = await fetch('/api/auth/check'); let d = await r.json();
+        this.authed = d.ok;
+        if(this.authed) { this.loadTodayTasks(); this.loadTasks(); this.loadIssues(); this.loadReminders(); }
+      } catch(e) { console.log(e) }
+    },
+    async login() {
+      this.err=''; this.loading=true;
+      try {
+        let r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:this.token})});
+        let d=await r.json();
+        if(d.ok) { this.authed=true; this.loadTodayTasks(); this.loadTasks(); this.loadIssues(); }
+        else this.err='密码错误';
+      } catch(e) { this.err='网络错误'; }
+      this.loading=false;
+    },
+    async logout() {
+      await fetch('/api/auth/logout',{method:'POST'}); this.authed=false; this.token='';
+    },
+    // 智能切换Tab：脏则刷新，否则用缓存
+    switchTab(name) {
+      this.tab = name;
+      if (this.dirty[name]) {
+        this.dirty[name] = false;
+        if (name === 'tasks') this.loadTasks();
+        else if (name === 'today') this.loadTodayTasks();
+        else if (name === 'issues') this.loadIssues();
+        else if (name === 'ideas') this.loadIdeas();
+        else if (name === 'reminders') this.loadReminders();
+        else if (name === 'notebooks') this.loadNoteTree();
+      }
+    },
+    // 标记某个Tab数据已过期
+    markDirty(...tabs) { tabs.forEach(t => this.dirty[t] = true); },
+
+    // ── 今日工作安排 ──
+    async loadTodayTasks() {
+      this.todayLoading=true;
+      try {
+        let r=await fetch('/api/tasks/today');
+        let d=await r.json();
+        const groups=d.groups||{};
+        // 展平所有分类的任务为单一数组，按时间段排序
+        let all = [];
+        for (const cat of this.categoryList) {
+          if (groups[cat]) all = all.concat(groups[cat]);
+        }
+        all.sort((a, b) => {
+          // 有时间段的排前面
+          const aHasSlot = a.time_slot ? 1 : 0;
+          const bHasSlot = b.time_slot ? 1 : 0;
+          if (aHasSlot !== bHasSlot) return bHasSlot - aHasSlot;
+          // 按时间段开始时间升序
+          if (a.time_slot && b.time_slot) {
+            return a.time_slot.localeCompare(b.time_slot);
+          }
+          return 0;
+        });
+        this.todayTasks = all;
+        this.todayTotal = all.length;
+      } catch(e) { this.showToast('加载今日任务失败','error'); }
+      this.todayLoading=false;
+    },
+    openNewCard(categoryKey) {
+      // 计算默认时间段：当前时间后最近整点，结束=开始+1h
+      const now = new Date();
+      let sh = now.getHours() + (now.getMinutes() > 0 ? 1 : 0);
+      if (sh > 23) sh = 23;
+      const time_start = String(sh).padStart(2,'0') + ':00';
+      let eh = sh + 1;
+      if (eh > 23) eh = 23;
+      const time_end = String(eh).padStart(2,'0') + ':00';
+      this.newCard={show:true, category:categoryKey, title:'', description:'', status:'进行中', project:'', assignee:'洋哥', time_start, time_end, remind_me:false, loading:false};
+    },
+    async submitNewCard() {
+      if(!this.newCard.title) { this.showToast('请输入任务标题','error'); return; }
+      this.newCard.loading=true;
+      try {
+        let today=new Date();
+        let deadline = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 0).getTime();
+        // 构造 time_slot 字符串
+        let time_slot = '';
+        if(this.newCard.time_start && this.newCard.time_end) {
+          time_slot = this.newCard.time_start + '-' + this.newCard.time_end;
+        } else if(this.newCard.time_start) {
+          time_slot = this.newCard.time_start;
+        }
+        let body={
+          title:this.newCard.title,
+          description:this.newCard.description,
+          category:this.newCard.category,
+          status:this.newCard.status,
+          project:this.newCard.project,
+          deadline:deadline,
+          assignee:this.newCard.assignee||'洋哥',
+          remind_me:this.newCard.remind_me||false,
+          time_slot:time_slot
+        };
+        let r=await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if(!r.ok) {
+          let d=await r.json().catch(()=>({}));
+          if(r.status===401) { this.showToast('登录已过期，请刷新页面','error'); }
+          else { this.showToast(d.detail||'创建失败','error'); }
+          return;
+        }
+        let d=await r.json();
+        if(d.record_id) {
+          this.newCard.show=false;
+          this.showToast('任务创建成功');
+          this.markDirty('tasks','today');
+          this.loadTodayTasks();
+        } else {
+          this.showToast(d.detail||'创建失败，请重试','error');
+        }
+      } catch(e) { this.showToast('网络错误，请重试','error'); }
+      finally { this.newCard.loading=false; }
+    },
+    
+    async deleteTaskConfirm(task) {
+      if(!confirm('确定删除任务「'+task.title+'」？')) return;
+      try {
+        const r=await fetch('/api/tasks/'+task.record_id,{method:'DELETE'});
+        if(!r.ok) { if(r.status===401){this.showToast('登录已过期，请刷新页面','error');return;} const d=await r.json().catch(()=>({})); this.showToast(d.detail||'删除失败','error'); return; }
+        this.showToast('任务已删除');
+        this.markDirty('tasks','today');
+        this.loadTodayTasks();
+      } catch(e) { this.showToast('删除失败','error'); }
+    },
+    
+    fmtTime(ts) {
+      if(!ts) return '';
+      let d=new Date(ts);
+      return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+    },
+
+    // ── 任务 ──
+    async loadTasks() {
+      this.taskLoading=true;
+      let p=new URLSearchParams();
+      if(this.taskFilter.status) p.set('status',this.taskFilter.status);
+      if(this.taskFilter.category) p.set('category',this.taskFilter.category);
+      if(this.taskFilter.keyword) p.set('keyword',this.taskFilter.keyword);
+      try {
+        let r=await fetch('/api/tasks?'+p.toString()); let d=await r.json();
+        this.tasks=d.items||[];
+      } catch(e) { this.showToast('加载任务失败','error'); }
+      this.taskLoading=false;
+    },
+    sortedTasks() {
+      const statusOrder = {'进行中':0,'已过期':1,'已取消':2,'已完成':3};
+      let list = [...this.tasks];
+      // 日期范围筛选
+      if (this.taskFilter.date_from || this.taskFilter.date_to) {
+        const from = this.taskFilter.date_from ? new Date(this.taskFilter.date_from).getTime() : 0;
+        const to = this.taskFilter.date_to ? new Date(this.taskFilter.date_to + 'T23:59:59').getTime() : Infinity;
+        list = list.filter(t => { const d = t.deadline || 0; return d >= from && d <= to; });
+      }
+      switch(this.taskSortBy) {
+        case 'deadline_asc':  list.sort((a,b)=>(a.deadline||0)-(b.deadline||0)); break;
+        case 'deadline_desc': list.sort((a,b)=>(b.deadline||0)-(a.deadline||0)); break;
+        case 'created_desc':  list.sort((a,b)=>(b.created_time||0)-(a.created_time||0)); break;
+        case 'created_asc':   list.sort((a,b)=>(a.created_time||0)-(b.created_time||0)); break;
+        case 'title_asc':     list.sort((a,b)=>(a.title||'').localeCompare(b.title||'','zh')); break;
+        case 'title_desc':    list.sort((a,b)=>(b.title||'').localeCompare(a.title||'','zh')); break;
+        case 'status_asc':    list.sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9)); break;
+      }
+      return list;
+    },
+    openTaskCreate() {
+      const now=new Date(), def=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T23:59';
+      this.taskForm={title:'',description:'',deadline:'',deadlineStr:def,category:'',project:'',status:'进行中',progress:'',frequencyType:'',frequencyCustom:'',assignee:'洋哥',remind_me:false,time_start:'',time_end:''};
+      this.rebuildDeadline();
+      this.taskEditId=null; this.taskModal.isNew=true; this.errMsg=''; this.taskModal.show=true;
+    },
+    openTaskEdit(t) {
+      // 从后端 frequency 数值反推 frequencyType 和 frequencyCustom
+      let frequencyType = '', frequencyCustom = '';
+      const freq = t.frequency || 0;
+      if (freq === 1) frequencyType = '1';
+      else if (freq === 7) frequencyType = '7';
+      else if (freq === 30) frequencyType = '30';
+      else if (freq > 0) { frequencyType = 'custom'; frequencyCustom = freq; }
+      // 解析 time_slot
+      let time_start = '', time_end = '';
+      if (t.time_slot) {
+        const parts = t.time_slot.split('-');
+        if (parts.length === 2) { time_start = parts[0]; time_end = parts[1]; }
+        else { time_start = t.time_slot; }
+      }
+      // 解析 deadline 为 datetime-local 字符串
+      let deadline = '', deadlineStr = '';
+      if (t.deadline) {
+        deadline = t.deadline;
+        const d = new Date(t.deadline);
+        deadlineStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      } else {
+        // 无截止时间，默认今天 23:59
+        const now=new Date(); deadlineStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T23:59';
+      }
+      this.taskForm={
+        title:t.title||'', description:t.description||'',
+        deadline, deadlineStr,
+        category:t.category||'', project:t.project||'',
+        status:t.status||'进行中', progress:t.progress||'',
+        frequencyType, frequencyCustom,
+        assignee:t.assignee||'洋哥',
+        remind_me:!!t.remind_me,
+        time_start, time_end
+      };
+      this.taskEditId=t.record_id; this.taskModal.isNew=false; this.errMsg=''; this.taskModal.show=true;
+    },
+    rebuildDeadline() {
+      // 从 datetime-local 字符串解析为毫秒时间戳
+      const s = this.taskForm.deadlineStr;
+      if (s) {
+        const p = s.split('T'), dp = p[0].split('-'), tp = p[1].split(':');
+        this.taskForm.deadline = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]), parseInt(tp[0]), parseInt(tp[1])).getTime();
+      } else {
+        this.taskForm.deadline = '';
+      }
+    },
+    async saveTask() {
+      if(!this.taskForm.title) { this.errMsg='请输入任务标题'; return; }
+      this.taskModal.loading=true; this.errMsg='';
+      // 保存前重新计算 deadline（防 iOS @change 不触发）
+      this.rebuildDeadline();
+      // 已过期任务延后截止时间→自动恢复进行中
+      if(!this.taskModal.isNew && this.taskForm.status==='已过期' && this.taskForm.deadline && this.taskForm.deadline > Date.now()) {
+        this.taskForm.status = '进行中';
+      }
+      let body={title:this.taskForm.title, description:this.taskForm.description, category:this.taskForm.category, project:this.taskForm.project, status:this.taskForm.status};
+      if(this.taskForm.deadline) body.deadline=this.taskForm.deadline;
+      if(!this.taskModal.isNew && this.taskForm.progress) body.progress=this.taskForm.progress;
+      if(this.taskForm.assignee) body.assignee=this.taskForm.assignee;
+      // 是否提醒
+      body.remind_me=!!this.taskForm.remind_me;
+      // 执行时间段
+      let time_slot = '';
+      if(this.taskForm.time_start && this.taskForm.time_end) time_slot = this.taskForm.time_start + '-' + this.taskForm.time_end;
+      else if(this.taskForm.time_start) time_slot = this.taskForm.time_start;
+      body.time_slot = time_slot;
+      // 频率
+      if(this.taskForm.frequencyType==='custom' && this.taskForm.frequencyCustom>0) body.frequency=this.taskForm.frequencyCustom;
+      else if(this.taskForm.frequencyType && this.taskForm.frequencyType!=='custom') body.frequency=parseInt(this.taskForm.frequencyType);
+      else body.frequency=0;
+      try {
+        let r;
+        if(this.taskModal.isNew) r=await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        else r=await fetch('/api/tasks/'+this.taskEditId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if(!r.ok) {
+          if(r.status===401){ this.errMsg='登录已过期，请刷新页面'; return; }
+          let ed=await r.json().catch(()=>({}));
+          this.errMsg=ed.detail||'保存失败'; return;
+        }
+        let d=await r.json();
+        if(d.record_id) {
+          this.taskModal.show=false;
+          this.showToast(this.taskModal.isNew?'创建成功':'更新成功');
+          if(this.taskModal.isNew) { this.loadTasks(); }
+          else { let i=this.tasks.findIndex(t=>t.record_id===this.taskEditId); if(i>=0) this.tasks[i]=d; }
+          this.markDirty('tasks','today');
+        }
+        else this.errMsg='保存失败';
+      } catch(e) { this.errMsg='网络错误'; }
+      this.taskModal.loading=false;
+    },
+    async quickStatus(t) {
+      let newStatus = t.status==='已完成' ? '进行中' : '已完成';
+      try {
+        const r=await fetch('/api/tasks/'+t.record_id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:newStatus})});
+        if(!r.ok) { if(r.status===401){this.showToast('登录已过期，请刷新页面','error');return;} const d=await r.json().catch(()=>({})); this.showToast(d.detail||'操作失败','error'); return; }
+        t.status = newStatus;
+        this.markDirty('tasks','today');
+      } catch(e) { this.showToast('操作失败','error'); }
+    },
+
+    downloadTasks() {
+      // 只导出进行中的任务
+      const active = this.sortedTasks().filter(t => t.status === '进行中');
+      if (active.length === 0) { this.showToast('没有进行中的任务','error'); return; }
+      const lines = active.map(t => {
+        const deadline = t.deadline ? new Date(t.deadline).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '无';
+        return `${t.title}\t${t.assignee || '洋哥'}\t${deadline}`;
+      });
+      const header = '任务标题\t负责人\t截止时间';
+      const content = header + '\n' + lines.join('\n');
+      const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().slice(0,10);
+      a.download = `任务清单_${today}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showToast(`已导出 ${active.length} 条任务`);
+    },
+
+    // ── 问题 ──
+    async loadIssues() {
+      this.issueLoading=true;
+      let p=new URLSearchParams();
+      if(this.issueFilter.status) p.set('status',this.issueFilter.status);
+      if(this.issueFilter.source) p.set('source',this.issueFilter.source);
+      if(this.issueFilter.assignee) p.set('assignee',this.issueFilter.assignee);
+      if(this.issueFilter.keyword) p.set('keyword',this.issueFilter.keyword);
+      try {
+        let r=await fetch('/api/issues?'+p.toString()); let d=await r.json();
+        this.issues=d.items||[];
+      } catch(e) { this.showToast('加载问题失败','error'); }
+      this.issueLoading=false;
+    },
+    openIssueCreate() {
+      this.issueForm={description:'',source:'',tags:[],assignee:'',status:'待处理',solution:'',createTaskFromSolution:false};
+      this.issueEditId=null; this.issueModal.isNew=true; this.errMsg=''; this.issueModal.show=true;
+    },
+    openIssueEdit(iss) {
+      this.issueForm={
+        description:iss.description||'', source:iss.source||'', tags:iss.tags||[],
+        assignee:iss.assignee||'', status:iss.status||'待处理', solution:iss.solution||'', createTaskFromSolution:false
+      };
+      this.issueEditId=iss.record_id; this.issueModal.isNew=false; this.errMsg=''; this.issueModal.show=true;
+    },
+    async saveIssue() {
+      if(!this.issueForm.description) { this.errMsg='请输入问题描述'; return; }
+      this.issueModal.loading=true; this.errMsg='';
+      let body={description:this.issueForm.description, source:this.issueForm.source, assignee:this.issueForm.assignee, status:this.issueForm.status};
+      if(!this.issueModal.isNew && this.issueForm.solution) body.solution=this.issueForm.solution;
+      try {
+        let r;
+        if(this.issueModal.isNew) r=await fetch('/api/issues',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        else r=await fetch('/api/issues/'+this.issueEditId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        let d=await r.json();
+        if(d.record_id) {
+          this.issueModal.show=false;
+          this.showToast(this.issueModal.isNew?'创建成功':'更新成功');
+          if(this.issueModal.isNew) { this.loadIssues(); }
+          else { let i=this.issues.findIndex(x=>x.record_id===this.issueEditId); if(i>=0) this.issues[i]=d; }
+          this.markDirty('issues');
+          // 将解决方案创建为新任务
+          if(!this.issueModal.isNew && this.issueForm.createTaskFromSolution && this.issueForm.solution) {
+            try {
+              let taskBody={title:this.issueForm.solution.substring(0,50), description:'来自问题: '+(this.issueForm.description||'').substring(0,100), status:'进行中', assignee:this.issueForm.assignee||'洋哥'};
+              await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(taskBody)});
+              this.markDirty('tasks','today');
+              this.showToast('已创建对应任务');
+            } catch(e) { console.error('创建任务失败',e); }
+          }
+        }
+        else this.errMsg='保存失败';
+      } catch(e) { this.errMsg='网络错误'; }
+      this.issueModal.loading=false;
+    },
+
+    // ── 状态快捷切换 ──
+    toggleStatusMenu(type, id) {
+      if (this.statusMenu.type === type && this.statusMenu.id === id) {
+        this.statusMenu = { type: '', id: '' };
+      } else {
+        this.statusMenu = { type, id };
+      }
+    },
+    closeStatusMenu() { this.statusMenu = { type: '', id: '' }; },
+    async changeTaskStatus(task, newStatus) {
+      if (task.status === newStatus) { this.closeStatusMenu(); return; }
+      try {
+        const r=await fetch('/api/tasks/'+task.record_id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:newStatus})});
+        if(!r.ok) { if(r.status===401){this.showToast('登录已过期，请刷新页面','error');return;} const d=await r.json().catch(()=>({})); this.showToast(d.detail||'操作失败','error'); return; }
+        task.status = newStatus;
+        this.closeStatusMenu();
+        this.markDirty('tasks','today');
+      } catch(e) { this.showToast('操作失败','error'); }
+    },
+    async changeIssueStatus(iss, newStatus) {
+      if (iss.status === newStatus) { this.closeStatusMenu(); return; }
+      try {
+        const r=await fetch('/api/issues/'+iss.record_id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:newStatus})});
+        if(!r.ok) { if(r.status===401){this.showToast('登录已过期，请刷新页面','error');return;} const d=await r.json().catch(()=>({})); this.showToast(d.detail||'操作失败','error'); return; }
+        iss.status = newStatus;
+        this.closeStatusMenu();
+        this.markDirty('issues');
+      } catch(e) { this.showToast('操作失败','error'); }
+    },
+
+    // ── 想法库 ──
+    async loadIdeas() {
+      this.ideaLoading = true;
+      try {
+        const params = new URLSearchParams();
+        if (this.ideaTag) params.set('tag', this.ideaTag);
+        if (this.ideaSearch.trim()) params.set('keyword', this.ideaSearch.trim());
+        const r = await fetch('/api/ideas?' + params);
+        if (!r.ok) { const d = await r.json(); throw new Error(d.detail || '加载失败'); }
+        const d = await r.json();
+        this.ideaList = d.items || [];
+      } catch(e) { this.showToast('加载想法失败: ' + e.message, 'error'); }
+      this.ideaLoading = false;
+    },
+    ideaDebounceSearch() {
+      clearTimeout(this.ideaSearchTimer);
+      this.ideaSearchTimer = setTimeout(() => this.loadIdeas(), 300);
+    },
+    openIdeaCreate() {
+      this.ideaModal = { show: true, isNew: true, loading: false, record_id: '', title: '', description: '', tags: [], source: '', priority: '⭐⭐中' };
+    },
+    openIdeaEdit(idea) {
+      this.ideaDetail = null;
+      this.ideaModal = { show: true, isNew: false, loading: false, record_id: idea.record_id, title: idea.title, description: idea.description, tags: [...(idea.tags||[])], source: idea.source, priority: idea.priority || '⭐⭐中' };
+    },
+    async saveIdea() {
+      const m = this.ideaModal;
+      if (!m.title.trim()) { this.showToast('请输入标题', 'error'); return; }
+      m.loading = true;
+      try {
+        const body = { title: m.title, description: m.description, tags: m.tags, source: m.source, priority: m.priority };
+        const url = m.isNew ? '/api/ideas' : '/api/ideas/' + m.record_id;
+        const method = m.isNew ? 'POST' : 'PUT';
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (!r.ok) { const d = await r.json(); throw new Error(d.detail || '保存失败'); }
+        m.show = false;
+        this.ideaDetail = null;
+        this.markDirty('ideas');
+        this.loadIdeas();
+        this.showToast(m.isNew ? '想法已记录 ✨' : '已更新');
+      } catch(e) { this.showToast('保存失败: ' + e.message, 'error'); }
+      m.loading = false;
+    },
+    openIdeaDetail(idea) {
+      this.ideaDetail = idea;
+    },
+    closeIdeaDetail() { this.ideaDetail = null; },
+    async changeIdeaStatus(recordId, status) {
+      this.ideaStatusMenu = '';
+      try {
+        const r = await fetch('/api/ideas/' + recordId + '/status', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+        if (!r.ok) throw new Error('更新失败');
+        this.markDirty('ideas');
+        this.loadIdeas();
+        this.showToast('状态已更新');
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+    deleteIdeaConfirm(recordId) {
+      this.ideaStatusMenu = '';
+      this.ideaDeleteId = recordId;
+    },
+    async doDeleteIdea() {
+      try {
+        await fetch('/api/ideas/' + this.ideaDeleteId, { method: 'DELETE' });
+        this.ideaDeleteId = '';
+        this.ideaDetail = null;
+        this.markDirty('ideas');
+        this.loadIdeas();
+        this.showToast('已删除');
+      } catch(e) { this.showToast('删除失败', 'error'); }
+    },
+    toggleIdeaTag(tag) {
+      const idx = this.ideaModal.tags.indexOf(tag);
+      if (idx >= 0) this.ideaModal.tags.splice(idx, 1);
+      else this.ideaModal.tags.push(tag);
+    },
+    ideaStatusClass(s) {
+      const m = {'灵感':'bg-gray-100 text-gray-600','探索中':'bg-blue-50 text-blue-600','已孵化':'bg-amber-50 text-amber-700','已落地':'bg-emerald-50 text-emerald-600','已搁置':'bg-gray-100 text-gray-400'};
+      return m[s]||'bg-gray-100 text-gray-600';
+    },
+
+    // ── 工具 ──
+    taskStatusClass(s) {
+      const m={'进行中':'bg-gray-100 text-blue-600','已完成':'bg-gray-100 text-emerald-600','已取消':'bg-gray-100 text-gray-500','已过期':'bg-gray-100 text-red-500'};
+      return m[s]||'bg-gray-100 text-gray-600';
+    },
+    taskStatusDot(s) {
+      const m={'进行中':'bg-blue-400','已完成':'bg-emerald-400','已取消':'bg-gray-400','已过期':'bg-red-400'};
+      return m[s]||'bg-gray-400';
+    },
+    issueStatusClass(s) {
+      const m={'待处理':'bg-gray-100 text-amber-700','处理中':'bg-gray-100 text-blue-600','已解决':'bg-gray-100 text-emerald-600','已搁置':'bg-gray-100 text-gray-500','已关闭':'bg-gray-100 text-red-500'};
+      return m[s]||'bg-gray-100 text-gray-600';
+    },
+    get issueAssignees() {
+      const s = new Set();
+      (this.issues||[]).forEach(i => { if(i.assignee) s.add(i.assignee); });
+      return [...s].sort();
+    },
+    issueStatusDot(s) {
+      const m={'待处理':'bg-amber-400','处理中':'bg-blue-400','已解决':'bg-emerald-400','已搁置':'bg-gray-400','已关闭':'bg-red-400'};
+      return m[s]||'bg-gray-400';
+    },
+    fmtDate(ts) {
+      if(!ts) return '';
+      let d=new Date(ts); let m=d.getMonth()+1; let dd=d.getDate(); let h=d.getHours().toString().padStart(2,'0'); let mm=d.getMinutes().toString().padStart(2,'0');
+      return m+'月'+dd+'日 '+h+':'+mm;
+    },
+    isOverdue(ts) {
+      if(!ts) return false;
+      return new Date(ts).getTime() < Date.now();
+    },
+    categoryIcon(cat) {
+      const m={'🔵 A+工作':'ti-briefcase','🟠 地铁工作':'ti-subtask','🟢 个人提升':'ti-trending-up','🟣 生活日常':'ti-home'};
+      return m[cat]||'ti-tag';
+    },
+    categoryLabel(cat) {
+      return (cat||'').replace(/^[\u{1F000}-\u{1FFFF}]\s*/u,'');
+    },
+    categoryColor(cat) {
+      const m={'🔵 A+工作':'#6BCB77','🟠 地铁工作':'#FF9F43','🟢 个人提升':'#5B9BD5','🟣 生活日常':'#9B72CF'};
+      return m[cat]||'#A0A4A8';
+    },
+    categoryEnglish(cat) {
+      const m={'🔵 A+工作':'A+ Work','🟠 地铁工作':'Metro','🟢 个人提升':'Growth','🟣 生活日常':'Life'};
+      return m[cat]||'Other';
+    },
+    sourceIcon(src) {
+      const m={'📋 例会':'ti-clipboard-list','🔍 检查':'ti-search','💼 经营':'ti-briefcase','👥 客户':'ti-users','🔧 运维':'ti-tool','📊 数据':'ti-chart-bar','🤔 其他':'ti-help-circle'};
+      return m[src]||'ti-tag';
+    },
+    sourceLabel(src) {
+      return (src||'').replace(/^[\u{1F000}-\u{1FFFF}]\s*/u,'');
+    },
+    showToast(msg, type='success') {
+      this.toast={show:true,msg,type};
+      setTimeout(()=>this.toast.show=false,3000);
+    },
+    // ── 固定提醒 ──
+    async loadReminders() {
+      this.reminderLoading = true;
+      try {
+        const r = await fetch('/api/reminders');
+        if (!r.ok) throw new Error('加载失败');
+        const d = await r.json();
+        this.reminderList = d.items || [];
+      } catch(e) { this.showToast('加载提醒失败', 'error'); }
+      this.reminderLoading = false;
+    },
+    openReminderCreate() {
+      this.reminderModal = { show: true, isNew: true, loading: false, record_id: '', title: '', cycle_type: '每天', weekday: '', month_day: 0, hour: '09', minute: '00', note: '' };
+    },
+    openReminderEdit(r) {
+      const parts = (r.remind_time || '09:00').split(':');
+      this.reminderModal = { show: true, isNew: false, loading: false, record_id: r.record_id, title: r.title, cycle_type: r.cycle_type || '每天', weekday: r.weekday || '', month_day: r.month_day || 0, hour: parts[0] || '09', minute: parts[1] || '00', note: r.note || '' };
+    },
+    async saveReminder() {
+      const m = this.reminderModal;
+      if (!m.title.trim()) { this.showToast('请输入提醒事项', 'error'); return; }
+      m.loading = true;
+      try {
+        const body = {
+          title: m.title,
+          cycle_type: m.cycle_type,
+          weekday: m.cycle_type === '按周' ? m.weekday : '',
+          month_day: m.cycle_type === '按月' ? m.month_day : 0,
+          remind_time: m.hour + ':' + m.minute,
+          note: m.note,
+        };
+        let r;
+        if (m.isNew) {
+          r = await fetch('/api/reminders', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        } else {
+          r = await fetch('/api/reminders/' + m.record_id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        }
+        if (!r.ok) throw new Error('保存失败');
+        const d = await r.json();
+        if (d.record_id) {
+          this.reminderModal.show = false;
+          this.showToast(m.isNew ? '创建成功' : '更新成功');
+          this.loadReminders();
+        } else {
+          this.showToast(d.detail || '保存失败', 'error');
+        }
+      } catch(e) { this.showToast('保存失败: ' + e.message, 'error'); }
+      m.loading = false;
+    },
+    async changeReminderStatus(recordId, status) {
+      this.reminderStatusMenu = '';
+      try {
+        const r = await fetch('/api/reminders/' + recordId + '/status', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+        if (!r.ok) throw new Error('更新失败');
+        this.loadReminders();
+        this.showToast('状态已更新');
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+    deleteReminderConfirm(recordId) {
+      this.reminderDeleteId = recordId;
+      this.reminderStatusMenu = '';
+    },
+    async doDeleteReminder() {
+      try {
+        const r = await fetch('/api/reminders/' + this.reminderDeleteId, { method: 'DELETE' });
+        if (!r.ok) throw new Error('删除失败');
+        this.showToast('已删除');
+        this.loadReminders();
+      } catch(e) { this.showToast(e.message, 'error'); }
+      this.reminderDeleteId = '';
+    },
+
+    // ═══════════════════════════════════════════════════════
+    // ═══ 笔记本方法 ═══
+    // ═══════════════════════════════════════════════════════
+
+    async loadNoteTree() {
+      try {
+        const r = await fetch('/api/notebooks/tree');
+        if (!r.ok) { if(r.status===401){ this.showToast('登录已过期，请刷新页面','error'); return; } throw new Error('加载失败'); }
+        const d = await r.json();
+        this.noteTree = d;
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+
+    nbCreateFile() {
+      const name = prompt('输入笔记名称：');
+      if (!name) return;
+      this.nbCreateNode('', name, 'file');
+    },
+    nbCreateFileIn(parentPath) {
+      const name = prompt('输入笔记名称：');
+      if (!name) return;
+      this.nbCreateNode(parentPath, name, 'file');
+    },
+    nbCreateFolder() {
+      const name = prompt('输入文件夹名称：');
+      if (!name) return;
+      this.nbCreateNode('', name, 'folder');
+    },
+    nbCreateFolderIn(parentPath) {
+      const name = prompt('输入文件夹名称：');
+      if (!name) return;
+      this.nbCreateNode(parentPath, name, 'folder');
+    },
+
+    async nbCreateNode(parentPath, name, nodeType) {
+      try {
+        const r = await fetch('/api/notebooks/nodes', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ parent_path: parentPath, name: name, node_type: nodeType })
+        });
+        if (!r.ok) {
+          if(r.status===401){ this.showToast('登录已过期','error'); return; }
+          const d = await r.json().catch(()=>({}));
+          this.showToast(d.detail||'创建失败', 'error'); return;
+        }
+        this.showToast(nodeType==='folder'?'文件夹已创建':'笔记已创建');
+        await this.loadNoteTree();
+        // 如果是文件，自动打开
+        if (nodeType === 'file') {
+          const path = parentPath ? parentPath + '/' + name + '.html' : name + '.html';
+          this.nbOpen(path);
+        }
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+
+    nbOpen(path) {
+      // 如果当前有未保存的笔记，先提示
+      if (this.nbUnsaved && this.nbCurrentPath) {
+        if (!confirm('当前笔记未保存，切换将丢失更改。确定切换吗？')) return;
+      }
+      this.nbCurrentPath = path;
+      this.noteReading = false;
+      this.nbUnsaved = false;
+      // 延迟初始化 Quill（等 DOM 渲染）
+      this.$nextTick(() => { this.nbInitQuill(path); });
+    },
+
+    async nbInitQuill(path) {
+      // 先销毁旧实例
+      const editorEl = document.getElementById('note-editor');
+      if (!editorEl) return;
+
+      // 如果 quill 已存在，先销毁
+      if (this.nbQuill) {
+        this.nbQuill = null;
+        editorEl.innerHTML = '';
+      }
+
+      // 加载内容
+      let content = '';
+      let annotations = [];
+      let displaySettings = {};
+      try {
+        const r = await fetch('/api/notebooks/read?path=' + encodeURIComponent(path));
+        if (!r.ok) { if(r.status===401){ this.showToast('登录已过期','error'); return; } throw new Error('加载失败'); }
+        const d = await r.json();
+        content = d.content || '';
+        annotations = d.annotations || [];
+        displaySettings = d.display_settings || {};
+      } catch(e) { this.showToast(e.message, 'error'); return; }
+
+      // 保存标注数据
+      this.nbAnnotations = annotations;
+      this.nbParaNumber = displaySettings.para_number || false;
+      this.nbDrawLines = displaySettings.draw_lines || [];
+
+      // 注册行间距自定义格式
+      if (!window._quillLineHeightRegistered) {
+        window._quillLineHeightRegistered = true;
+        const Quill = window.Quill;
+        const Parchment = Quill.import('parchment');
+        const LineHeightStyle = new Parchment.Attributor.Style('lineheight', 'line-height', { scope: Parchment.Scope.INLINE_ATTRIBUTE });
+        Quill.register({ 'formats/lineheight': LineHeightStyle }, true);
+      }
+
+      const Quill = window.Quill;
+
+      // 创建 Quill 实例
+      this.nbQuill = new Quill('#note-editor', {
+        theme: 'snow',
+        modules: {
+          toolbar: {
+            container: '#note-toolbar',
+            handlers: {
+              image: this.nbImageHandler.bind(this),
+              divider: this.nbInsertDivider.bind(this),
+            }
+          }
+        },
+        placeholder: '开始输入...',
+      });
+
+      // 设置内容
+      this.nbQuill.root.innerHTML = content;
+
+      // 行间距下拉
+      const lhSelect = document.querySelector('.ql-lineheight');
+      if (lhSelect) {
+        const heights = ['1.0', '1.5', '1.75', '2.0', '2.5', '3.0'];
+        lhSelect.innerHTML = heights.map(h => `<option value="${h}">${h}</option>`).join('');
+        lhSelect.addEventListener('change', () => {
+          const val = lhSelect.value;
+          this.nbQuill.format('lineheight', val);
+        });
+      }
+
+      // 内容变化监听
+      this.nbQuill.on('text-change', () => { this.nbUnsaved = true; });
+    },
+
+    nbImageHandler() {
+      const input = document.createElement('input');
+      input.setAttribute('type', 'file');
+      input.setAttribute('accept', 'image/*');
+      input.click();
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const r = await fetch('/api/notebooks/upload', { method: 'POST', body: formData });
+          if (!r.ok) { this.showToast('图片上传失败', 'error'); return; }
+          const d = await r.json();
+          const range = this.nbQuill.getSelection();
+          this.nbQuill.insertEmbed(range.index, 'image', d.url);
+          this.nbUnsaved = true;
+        } catch(e) { this.showToast('图片上传失败', 'error'); }
+      };
+    },
+
+    nbInsertDivider() {
+      if (!this.nbQuill) return;
+      const range = this.nbQuill.getSelection();
+      this.nbQuill.insertText(range.index, '\n', 'user');
+      this.nbQuill.insertEmbed(range.index + 1, 'divider', true);
+      this.nbQuill.insertText(range.index + 2, '\n', 'user');
+    },
+
+    async nbSave() {
+      if (!this.nbQuill || !this.nbCurrentPath) return;
+      this.nbSaving = true;
+      try {
+        const content = this.nbQuill.root.innerHTML;
+        const r = await fetch('/api/notebooks/save?path=' + encodeURIComponent(this.nbCurrentPath), {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ content: content })
+        });
+        if (!r.ok) {
+          if(r.status===401){ this.showToast('登录已过期','error'); this.nbSaving=false; return; }
+          const d = await r.json().catch(()=>({}));
+          this.showToast(d.detail||'保存失败', 'error'); this.nbSaving=false; return;
+        }
+        this.nbUnsaved = false;
+        this.showToast('已保存');
+      } catch(e) { this.showToast(e.message, 'error'); }
+      this.nbSaving = false;
+    },
+
+    async nbRename(node) {
+      const newName = prompt('输入新名称：', node.name.replace(/\.html$/, ''));
+      if (!newName || newName === node.name.replace(/\.html$/, '')) return;
+      try {
+        const r = await fetch('/api/notebooks/rename?path=' + encodeURIComponent(node.path), {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ new_name: newName + (node.type==='file' && !newName.endsWith('.html') ? '.html' : '') })
+        });
+        if (!r.ok) {
+          if(r.status===401){ this.showToast('登录已过期','error'); return; }
+          const d = await r.json().catch(()=>({}));
+          this.showToast(d.detail||'重命名失败', 'error'); return;
+        }
+        const d = await r.json();
+        // 如果是当前打开的文件，更新路径
+        if (this.nbCurrentPath === node.path) {
+          this.nbCurrentPath = d.new_path;
+        }
+        this.showToast('已重命名');
+        await this.loadNoteTree();
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+
+    async nbDelete(node) {
+      if (!confirm('确定删除「' + node.name.replace(/\.html$/, '') + '」？' + (node.type==='folder' ? '\n该文件夹下所有内容将被删除。' : ''))) return;
+      try {
+        const r = await fetch('/api/notebooks/delete?path=' + encodeURIComponent(node.path), { method: 'DELETE' });
+        if (!r.ok) {
+          if(r.status===401){ this.showToast('登录已过期','error'); return; }
+          const d = await r.json().catch(()=>({}));
+          this.showToast(d.detail||'删除失败', 'error'); return;
+        }
+        if (this.nbCurrentPath === node.path || (this.nbCurrentPath && this.nbCurrentPath.startsWith(node.path + '/'))) {
+          this.nbCurrentPath = '';
+          this.noteReading = false;
+        }
+        this.showToast('已删除');
+        await this.loadNoteTree();
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+
+    // ── 展示模式 ──
+
+    nbToggleReading() {
+      if (!this.nbCurrentPath) return;
+      // 如果编辑模式有未保存内容，先保存
+      if (this.nbUnsaved && this.nbQuill) {
+        this.nbSave();
+      }
+      // 获取内容并展示
+      if (this.nbQuill) {
+        this.nbDisplayContent = this.nbQuill.root.innerHTML;
+      }
+      this.noteReading = true;
+      // 应用已保存的标注
+      this.$nextTick(() => { this.nbApplyAnnotations(); });
+    },
+
+    nbApplyAnnotations() {
+      // 应用高亮标注
+      if (this.nbAnnotations && this.nbAnnotations.length > 0) {
+        this.nbAnnotations.forEach(ann => {
+          if (ann.type === 'highlight' && ann.text) {
+            const content = this.$refs.readingContent;
+            if (!content) return;
+            this.nbHighlightText(content, ann.text, ann.color || 'yellow');
+          }
+        });
+      }
+      // 应用段落序号
+      if (this.nbParaNumber) {
+        this.$nextTick(() => {
+          const content = this.$refs.readingContent;
+          if (content) content.classList.add('auto-number');
+        });
+      }
+      // 恢复画线
+      if (this.nbDrawLines && this.nbDrawLines.length > 0) {
+        this.$nextTick(() => { this.nbDrawLines = [...this.nbDrawLines]; });
+      }
+    },
+
+    nbHighlightText(container, text, color) {
+      const colorClass = 'note-highlight-' + color;
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, null);
+      const nodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        if (node.textContent.includes(text)) nodes.push(node);
+      }
+      nodes.forEach(textNode => {
+        const idx = textNode.textContent.indexOf(text);
+        if (idx === -1) return;
+        const range = document.createRange();
+        range.setStart(textNode, idx);
+        range.setEnd(textNode, idx + text.length);
+        const mark = document.createElement('mark');
+        mark.className = colorClass;
+        range.surroundContents(mark);
+      });
+    },
+
+    nbHighlight(color) {
+      const selection = window.getSelection();
+      if (!selection.rangeCount || selection.isCollapsed) {
+        this.showToast('请先选择要标注的文字', 'error'); return;
+      }
+      const range = selection.getRangeAt(0);
+      const content = this.$refs.readingContent;
+      if (!content || !content.contains(range.commonAncestorContainer)) {
+        this.showToast('请在文档内容区域选择文字', 'error'); return;
+      }
+      const mark = document.createElement('mark');
+      mark.className = 'note-highlight-' + color;
+      try {
+        range.surroundContents(mark);
+        // 记录标注
+        const selectedText = selection.toString();
+        this.nbAnnotations.push({ type: 'highlight', text: selectedText, color: color });
+        selection.removeAllRanges();
+      } catch(e) { this.showToast('无法标注此区域', 'error'); }
+    },
+
+    nbClearHighlight() {
+      if (!confirm('确定清除所有标注？')) return;
+      const content = this.$refs.readingContent;
+      if (!content) return;
+      // 移除所有 mark 元素，保留文本
+      content.querySelectorAll('mark[class*="note-highlight"]').forEach(el => {
+        const parent = el.parentNode;
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+        parent.normalize();
+      });
+      this.nbAnnotations = [];
+      this.showToast('已清除标注');
+    },
+
+    nbToggleParaNumber() {
+      this.nbParaNumber = !this.nbParaNumber;
+    },
+
+    nbToggleDraw() {
+      this.nbDrawing = !this.nbDrawing;
+      const container = this.$refs.readingContainer;
+      if (!container) return;
+      if (this.nbDrawing) {
+        container.classList.add('note-draw-active');
+        this._drawStartHandler = (e) => this.nbDrawStart(e);
+        this._drawMoveHandler = (e) => this.nbDrawMove(e);
+        this._drawEndHandler = (e) => this.nbDrawEnd(e);
+        container.addEventListener('mousedown', this._drawStartHandler);
+        container.addEventListener('mousemove', this._drawMoveHandler);
+        container.addEventListener('mouseup', this._drawEndHandler);
+        container.addEventListener('mouseleave', this._drawEndHandler);
+      } else {
+        container.classList.remove('note-draw-active');
+        container.removeEventListener('mousedown', this._drawStartHandler);
+        container.removeEventListener('mousemove', this._drawMoveHandler);
+        container.removeEventListener('mouseup', this._drawEndHandler);
+        container.removeEventListener('mouseleave', this._drawEndHandler);
+      }
+    },
+
+    nbDrawStart(e) {
+      this._drawStartPos = this.nbGetMousePos(e);
+      this._drawing = true;
+    },
+    nbDrawMove(e) {
+      if (!this._drawing) return;
+      const pos = this.nbGetMousePos(e);
+      // 实时更新临时线
+      this.nbDrawLines = this.nbDrawLines.filter(l => !l._temp);
+      this.nbDrawLines.push({ x1: this._drawStartPos.x, y1: this._drawStartPos.y, x2: pos.x, y2: pos.y, _temp: true });
+    },
+    nbDrawEnd(e) {
+      if (!this._drawing) return;
+      this._drawing = false;
+      const pos = this.nbGetMousePos(e);
+      // 替换临时线为正式线
+      this.nbDrawLines = this.nbDrawLines.filter(l => !l._temp);
+      // 只有线足够长才保存
+      const dx = pos.x - this._drawStartPos.x;
+      const dy = pos.y - this._drawStartPos.y;
+      if (Math.sqrt(dx*dx + dy*dy) > 10) {
+        this.nbDrawLines.push({ x1: this._drawStartPos.x, y1: this._drawStartPos.y, x2: pos.x, y2: pos.y });
+      }
+    },
+    nbGetMousePos(e) {
+      const container = this.$refs.readingContainer;
+      if (!container) return { x: 0, y: 0 };
+      const rect = container.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    },
+    nbRemoveLine(idx) {
+      this.nbDrawLines.splice(idx, 1);
+    },
+
+    async nbSaveReading() {
+      if (!this.nbCurrentPath) return;
+      try {
+        const displaySettings = {
+          para_number: this.nbParaNumber,
+          draw_lines: this.nbDrawLines.map(l => ({ x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2 })),
+        };
+        const r = await fetch('/api/notebooks/annotations?path=' + encodeURIComponent(this.nbCurrentPath), {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ display_settings: displaySettings, annotations: this.nbAnnotations })
+        });
+        if (!r.ok) {
+          if(r.status===401){ this.showToast('登录已过期','error'); return; }
+          this.showToast('保存失败', 'error'); return;
+        }
+        this.showToast('标注已保存');
+      } catch(e) { this.showToast(e.message, 'error'); }
+    }
+  };
+}
+function toLocalDatetime(ts) {
+  let d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':00+08:00';
+}
+</script>
+</body>
+</html>
